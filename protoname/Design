@@ -1,0 +1,161 @@
+ 1. Divide the active and inactive set of nodes.
+ Setting up the data Path:
+ ------------------------
+ 2. Base Station will send Forwarder_Req_Mesg to its one hop neighbors.
+ 3. All the active nodes that receive this message from BS will set their forwarder
+  	as the base station.
+ 4. After setting their forwarder, each activ node will send the Forwarder_Req_Mesg
+ 	to its corresponding one hop neighbors which are at a 
+ 	greater distance from the base station than the current node.
+ 5. This process continues for all the remaining active nodes.
+ 6. This completes setting of the data path from each and every active node.
+ 
+Configuration of Monitors:
+--------------------------- 
+ 7.Configuration of monitors will happen in two stages(namely First and Second).
+ 8.In the first stage , all the active nodes which are at even hop distance from the base
+   station are considered for configuring the monitors.
+ 9.In the second stage , all the active nodes which are at odd hop distance from the base
+   station and not having a monitor are considered for configuring the monitors.
+   
+ Process of configuring in the first stage:
+ --------------------------------------------  
+ 10.Every active node will send a Neighbor_Req_Mesg to its forwarder.
+ 11.The forwarder of that node inturn replies with a Neighbor_Reply_Mesg message containing
+ 	its one hop neighbors and its forwarder.
+ 12.Once the sender receives this message, it configures the forwarders forwarder 
+ 	from that message and finds the set of inactive nodes common to itself and its 
+ 	forwarder. Let the set be named 'CommonSet'.
+ 13.The sender then sends the Monitor_Req_Mesg to all the nodes in the Common Set containing
+ 	its forwarder and forwarders forwarder.	
+ 14.All the active nodes which are in CommonSet will ignore this message.
+ 15.The inactive nodes in CommonSet will reply with Monitor_Agree_Mesg with the following info.
+ 	a) If the sender and its forwarder are only its one hop neighbors then it sets a field in the 
+ 	packet "No of Links" to 1.
+	 b) If the sender ,its forwarder and its forwarders forwarder are its one hop neighbors then it sets a field in the 
+ 	packet "No of Links" to 2.
+ 	c) If either of these two cases do not occur, it will ignore the message.
+  	  	
+ 16. Each time the sender receives Monitor_Agree_Mesg , it will compare the "No of Links"
+     and whichever has the highest value will be set as the monitor 
+ 	 The sender waits for a fixed duration of time to receive Monitor_Agree_Mesg before 
+ 	 sending the notification message.
+ 17.The sender now sends a Monitor_Notification_Mesg to all its one hop neighbors
+    informing the nodes about its monitor, its forwarder and no of link covered by the monitor
+    Now three cases arise:
+    If the receiving node is a forwarder of the sender -
+    ---------------------------------------------------
+    If the "No of Links" is 2 , then it implies that the receiver and its forwarder are also monitored
+    by the same monitor. Hence it sets the same node as its monitor for the link between
+    itself and its forwarder.
+    If the "No of Links" is 1 , then it implies that the sender and receiver are only monitored
+    by the monitor. Hence it ignores the message.
+    If the receiving node is an inactive node and is not the monitor -
+    -----------------------------------------------------------------
+    It ignores the message.
+    
+    If the receiving node is inactive node and is the monitor  -
+    -----------------------------------------------------------
+    If the "No of Links" is 2 ,then it adds the the sender,sender's forwarder and 
+    sender's forwarder's forwarder to its list of monitored nodes. 
+    If the "No of Links" is 1 , then it adds the the sender and sender's forwarder to its list of monitored nodes.
+    
+ Process of configuring in the Second stage:
+ --------------------------------------------      
+ 18. The procedure for configuring the monitors in second stage is same as that of 
+ 	 first stage, except for the following changes
+ 	 a. It is run for the active nodes which are at odd hop distance from the BaseStation
+ 	 b. Only if the monitor is not already configured.   
+    
+ 	 
+Design choices or Considerations:
+---------------------------------
+ 1.To choose one among the CommonSet, a node has two ways of doing
+ 	 a. Randomly choose one among them as Monitor
+ 	 b. or Check if whichever node has highest number of links covered.
+ 	     This is not feasible as we may need to get many messages flowing .
+ 
+ 2.Once a node gets monitor Req message, it will wait for certain period of time to receive 
+   any Monitor request from other nodes as well. After collecting all the monitor request messages,
+   node has two ways of selecting the nodes for which it will be acting as monitor
+     a. randomly choose MAX_MONITORED_NODE nodes from all the requests received.
+     b. Select the nodes that can be maximum covered  and reply for them.
+     
+ 3. See the trade off of selecting a monitor for max links of 2 (3 nodes)or maxlinks of 4 (6 nodes)
+ 
+ 4. Repeat the selection of monitors for MAGIC_NUMBER (3)  of times, as the nodes being monitored are
+    chosen randomly, it is possible that a node might not get any monitor at all.As the random function is 
+    probabilistic fucntion, even after infinite number of tries, a node may still not get a monitor.
+    so instead of trying just once, make second attempt or the third attempt.
+   
+ 5.switch between even and odd 
+ 
+ 
+ Tasks:
+ ---------
+ 
+ 1.Change random function properly taking seed
+ 2.Include four way handshake for monitor configuration.
+ 3.Monitor configuration phases 2 and 3 should be independent and should not be synchronized.
+ 4.The simulation time should be reduced.
+ 5.Have the timer depending on the size of the packet.
+ 
+ 
+ Datapacket forwarding:
+ ----------------------
+ 1.Whenever a node receieves a Datapacket,before forwarding the packet,
+   it adds its node id as the previous hop.This broadcasted packet can be
+   received by Monitor node,Active Node and Inactive node
+   
+   On the receiver side:
+   -------------------
+   If the packet is received by
+   
+   Monitor node:
+   ------------
+   1.Monitor node will not send an ACK as it is just overhearing
+   2.Check if the previous hop is by one of its Monitored nodes
+   3.If so, add the data packet into respective link queue.
+   4.If not just drop the packet.
+   5.After adding the data into queue, start a timer with enough
+    time so that the node's forwarder can forward the data. Within this
+    time if the data is not received monitor has to forward the data 
+    through some other node.
+   6.If the monitor node receives another packet with the same
+     packet id,sent by another monitored nodes, remove the data from
+     the queue.
+ 
+   Active Node:
+   ------------
+   1.Check if the previous hop is one of its neighbors, farther
+     than the current node's distance to base station
+   2.If not, drop the packet.
+   3.If so,check if the packet is present in the sentqueue of the nodes
+     if sent, drop the packet, else forward the packet
+   4. Add the packet to sentQueue.
+   
+   
+   Inactive node:
+   --------------
+   Does nothing
+    
+ 
+ Monitor configuration
+ ---------------------
+ Two ways of chosing a node to send MONITOR_REQ_MESG
+ 1.Out of the common neighbors of the forwarder, chose one node randomly and send MONITOR_REQ_MESG
+ solution:
+ 	1.The node that receives MONITOR_REQ_MESG will check if it can accept
+ 2.Out of the common neighbors of the forwarder, send MONITOR_REQ_MESG to all the qualifying nodes
+     
+   	 
+ To DO : May 21 2009
+ 1.Maintain a buffer at each node for the data packets it has to send
+ 2.Implement call backs to retransmit the packet for failure transmissions
+ 3.Reduce the anttena ragne
+ 4.test with more nodes
+ 5.Start the queue size timers at the monitor node for each data packet it overhears
+ 6.When the timer expires, forward the data thru alternate route
+ 7.Data is transfered with a Four way handshake
+ 8.Use topology generators  
+   

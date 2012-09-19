@@ -1,0 +1,37 @@
+1.While running scripts,following error occured
+ns:
+[code omitted because of length]
+: wrong # args: should be {Simulator instproc name args body}
+    (Class instproc line 1)
+    invoked from within
+"Simulator instproc create-protoname-agent{node}{"
+
+Solution/Fix:
+Added these lines in "ns-allinone-2.33/ns-2.33/tcl/lib/ns-mobilenode.tcl" file
+in function "Node/MobileNode instproc add-target { agent port }"
+       
+       # Special processing for Protoname
+       set protonameonly [string first "Protoname" [$agent info class]]
+       if {$protonameonly != -1 } {
+               #$agent if-queue [$self set ifq_(0)]   ;# ifq between LL and MAC
+               $agent install-tap [$self set mac_(0)]
+       }
+
+2. When running scripts, following error occured
+--- Classfier::no-slot{} default handler (tcl/lib/ns-lib.tcl) ---
+        _o52: no target for slot 0
+        _o52 type: Classifier/Port
+content dump:
+classifier _o52
+        0 offset
+        0 shift
+        2147483647 mask
+        1 slots
+                slot 255: _o54 (CMUTrace/Recv)
+---------- Finished standard no-slot{} default handler ----------
+
+Solution/Fix:
+While sending/forwarding the datapacket, dont modify the destination addr
+field in the ip header of the packet.It should not be modified at all.
+only change the common header's nexthop field to the address of the next node.
+for example dont do some thing like, p_ih->daddr() = (nsaddr_t)(nextnode);

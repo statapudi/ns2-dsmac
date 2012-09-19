@@ -1,0 +1,19 @@
+
+Code Clarification:
+----------------------
+
+ 1.When is data actually being generated?
+ 2.Questions mentioned in the code(forward_data)
+ 3.What is the path for actual data packets.
+ 4.Where are we setting type of data to be PT_CBR
+ 5.Are next_hop() and daddr() not the same.
+ 6. ttl ???
+ 7.When is call back handler used??? and how
+ 8.what is in general use of gob object? Is it only to get hop distance.
+ 9.What is stored in rtable? IS it the next hop and daddr info.
+ 10.Why is only udp AGENT used and not tcp??? Routing agent clarify????
+ 
+ 
+ 
+Data freshness:
+---------------
