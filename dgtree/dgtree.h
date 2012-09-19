@@ -10,8 +10,9 @@
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
+#define MAX_FORWARDERS 1
 
-class DGTree; // forward declaration
+class DGTree;// forward declaration
 
 /* Timers */
 
@@ -36,7 +37,9 @@ class DGTree: public Agent {
 	/* Private members */
 	nsaddr_t ra_addr_;
 	int accessible_var_;
+	int num_forwarders;
 	u_int8_t seq_num_;
+	nsaddr_t forwarder[MAX_FORWARDERS];
 
 protected:
 
@@ -66,6 +69,7 @@ public:
 	~DGTree();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
+	void forward_data(Packet*,nsaddr_t dest);
 
 };
 

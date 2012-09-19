@@ -8,8 +8,17 @@ int hdr_dgtree::offset_;
 
 DGTree::DGTree(nsaddr_t id) :
 	Agent(PT_DGTREE){
+	int i=0;
 	bind_bool("accessible_var_", &accessible_var_);
 	ra_addr_ = id;
+	/*Initially we assume a node can accommodate the desired number of forwarders.
+	Once all forwarders are determined, this is adjusted accordingly*/
+	num_forwarders = MAX_FORWARDERS;
+	/* Forwarders are set to -1 initially. Will be changed to the actual
+	addresses after determining them*/
+	for(i=0;i<num_forwarders;i++)
+		forwarder[i] = -1;
+
 }
 
 int DGTree::command(int argc, const char* const * argv) {
@@ -25,8 +34,16 @@ int DGTree::command(int argc, const char* const * argv) {
 void DGTree::recv(Packet* p, Handler* h) {
 
 
+
+
 }
-DGTree::~DGTree(){}
+
+void  DGTree::forward_data(Packet* p,nsaddr_t type){
+
+
+
+}
+DGTree::~DGTree(){} // Empty destructor
 
 /********** TCL Hooks************/
 static class DGTreeHeaderClass: PacketHeaderClass {
