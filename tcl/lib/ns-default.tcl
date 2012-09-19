@@ -1590,3 +1590,7 @@ Agent/PBC set modulationScheme 0
 
 Agent/MDART set macFailed_ true
 Agent/MDART set etxMetric_ true
+
+#DGTree
+
+Agent/DGTree set accessible_var_ true

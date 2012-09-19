@@ -669,6 +669,9 @@ Simulator instproc create-wireless-node args {
 		    ManualRtg {
 			    set ragent [$self create-manual-rtg-agent $node]
 		    }
+		    DGTree {
+			    set ragent [$self create-dgtree-agent $node]
+		    }
 		    default {
 			    eval $node addr $args
 			    puts "Wrong node routing agent!"
@@ -2293,3 +2296,10 @@ Simulator instproc prepare-to-stop {} {
 	}
 }
     
+Simulator instproc create-protoname-agent { node } {
+# Create DGTree routing agent
+	set ragent [new Agent/DGTree [$node node-addr]]
+ 	$self at 0.0 "$ragent start"
+	$node set ragent_ $ragent
+	return $ragent
+}
