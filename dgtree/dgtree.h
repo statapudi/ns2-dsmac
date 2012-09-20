@@ -7,6 +7,7 @@
 #include <timer-handler.h>
 #include <random.h>
 #include <classifier-port.h>
+#include <cmu-trace.h>
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
@@ -45,11 +46,12 @@ protected:
 
 	PortClassifier* dmux_; // For passing packets up to agents.
 	Trace* logtarget_; // For logging.
-	/*DGtree_PktTimer pkt_timer_; // Timer for sending packets.
-
 	inline nsaddr_t& ra_addr() {
 		return ra_addr_;
 	}
+	/*DGtree_PktTimer pkt_timer_; // Timer for sending packets.
+
+
 	inline dgtree_state& state() {
 		return state_;
 	}*/
@@ -69,7 +71,7 @@ public:
 	~DGTree();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
-	void forward_data(Packet*,nsaddr_t dest);
+	void forward_data(Packet*);
 
 };
 

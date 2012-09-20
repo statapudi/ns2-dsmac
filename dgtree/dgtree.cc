@@ -3,8 +3,12 @@
 #include <agent.h>
 #include <packet.h>
 #include <address.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <agent.h>
+#include <cmu-trace.h>
 int hdr_dgtree::offset_;
+
 
 DGTree::DGTree(nsaddr_t id) :
 	Agent(PT_DGTREE){
@@ -33,16 +37,56 @@ int DGTree::command(int argc, const char* const * argv) {
 
 void DGTree::recv(Packet* p, Handler* h) {
 
+	struct hdr_cmn* ch = HDR_CMN(p);
+	struct hdr_ip* ih = HDR_IP(p);
+	if (ih->saddr() == ra_addr()) {
+		// If there exists a loop, must drop the packet
+		if (ch->num_forwards() > 0) {
+			drop(p, DROP_RTR_ROUTE_LOOP);
+			return;
+		}
+		// else if this is a packet I am originating, must add IP header
+		else if (ch->num_forwards() == 0)
+			ch->size() += IP_HDR_LEN;
+	}
+
+	// If it is a DGTree packet, must process it
+	if (ch->ptype() == PT_DGTREE)
+		recv_dgtree_pkt(p);
+	// Otherwise, must forward the packet (unless TTL has reached zero)
+	else {
+		ih->ttl_--;
+		if (ih->ttl_ == 0) {
+			drop(p, DROP_RTR_TTL);
+			return;
+		}
+		forward_data(p);
+	}
+}
+
+void DGTree::recv_dgtree_pkt(Packet *p) {
+	struct hdr_ip* ih = HDR_IP(p);
+	struct hdr_dgtree* ph = HDR_DGTREE(p);
+
+	/* All routing messages are sent from and to port RT_PORT,
+	 so we check it */
+	assert(ih->sport() == RT_PORT);
+	assert(ih->dport() == RT_PORT);
+
+	/* ... TODO: processing of dgtree packet ... */
+
+	// Release resources
+	Packet::free(p);
+}
+
+
+
+void  DGTree::forward_data(Packet* p){
 
 
 
 }
 
-void  DGTree::forward_data(Packet* p,nsaddr_t type){
-
-
-
-}
 DGTree::~DGTree(){} // Empty destructor
 
 /********** TCL Hooks************/

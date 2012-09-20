@@ -3,11 +3,16 @@
 
 #include <packet.h>
 
+#define PARENT_HELLO 0
+#define CHILD_ACK 1
+#define PARENT_SUPPORT_NUM 2
+
 #define HDR_DGTREE(p) hdr_dgtree::access(p)
 
 struct hdr_dgtree {
 
 	nsaddr_t pkt_src_;
+	int content_type;
 	inline nsaddr_t& pkt_src() {
 		return pkt_src_;
 	}
