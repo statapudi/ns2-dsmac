@@ -12,7 +12,6 @@
 struct hdr_dgtree {
 
 	nsaddr_t pkt_src_;
-	int content_type;
 	inline nsaddr_t& pkt_src() {
 		return pkt_src_;
 	}

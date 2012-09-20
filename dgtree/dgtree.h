@@ -68,7 +68,6 @@ protected:
 public:
 
 	DGTree( nsaddr_t);
-	~DGTree();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
 	void forward_data(Packet*);

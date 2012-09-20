@@ -5,8 +5,8 @@
 #include <address.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <agent.h>
 #include <cmu-trace.h>
+
 int hdr_dgtree::offset_;
 
 
@@ -75,6 +75,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 
 	/* ... TODO: processing of dgtree packet ... */
 
+
 	// Release resources
 	Packet::free(p);
 }
@@ -87,7 +88,6 @@ void  DGTree::forward_data(Packet* p){
 
 }
 
-DGTree::~DGTree(){} // Empty destructor
 
 /********** TCL Hooks************/
 static class DGTreeHeaderClass: PacketHeaderClass {
