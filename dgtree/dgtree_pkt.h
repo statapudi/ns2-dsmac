@@ -12,9 +12,20 @@
 struct hdr_dgtree {
 
 	nsaddr_t pkt_src_;
+	u_int16_t pkt_len_;
+	u_int8_t pkt_seq_num_;
+
+
 	inline nsaddr_t& pkt_src() {
 		return pkt_src_;
 	}
+	inline u_int16_t& pkt_len() {
+		return pkt_len_;
+	}
+	inline u_int8_t& pkt_seq_num() {
+		return pkt_seq_num_;
+	}
+
 	static int offset_;
 	inline static int& offset() {
 		return offset_;

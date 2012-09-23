@@ -803,6 +803,14 @@ Simulator instproc set-dsr-nodetype {} {
 	return $nodetype
 }
 
+Simulator instproc create-dgtree-agent { node } {
+# Create DGTree routing agent
+	set ragent [new Agent/DGTree [$node node-addr]]
+ 	$self at 0.0 "$ragent start"
+	$node set ragent_ $ragent
+	return $ragent
+}
+
 Simulator instproc create-tora-agent { node } {
         set ragent [new Agent/TORA [$node id]]
 	$node set ragent_ $ragent
@@ -2296,10 +2304,4 @@ Simulator instproc prepare-to-stop {} {
 	}
 }
     
-Simulator instproc create-protoname-agent { node } {
-# Create DGTree routing agent
-	set ragent [new Agent/DGTree [$node node-addr]]
- 	$self at 0.0 "$ragent start"
-	$node set ragent_ $ragent
-	return $ragent
-}
+

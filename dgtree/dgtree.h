@@ -49,20 +49,20 @@ protected:
 	inline nsaddr_t& ra_addr() {
 		return ra_addr_;
 	}
-	/*DGtree_PktTimer pkt_timer_; // Timer for sending packets.
+	DGTree_PktTimer pkt_timer_; // Timer for sending packets.
 
 
-	inline dgtree_state& state() {
+	/*inline dgtree_state& state() {
 		return state_;
 	}*/
+
 	inline int& accessible_var() {
 		return accessible_var_;
 	}
 
-	//void forward_data(Packet*);
+	void forward_data(Packet*);
 	void recv_dgtree_pkt(Packet*);
 	void send_dgtree_pkt();
-
 	void reset_dgtree_pkt_timer();
 
 public:
@@ -70,7 +70,6 @@ public:
 	DGTree( nsaddr_t);
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
-	void forward_data(Packet*);
 
 };
 
