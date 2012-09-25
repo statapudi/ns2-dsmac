@@ -19,7 +19,7 @@ set val(y) 		250		 ;# Y dimension of topology
 set val(ifqlen) 50                       ;# max packet in ifq
 set val(nn)     6            	         ;# number of nodes
 set val(seed)	0.0
-set val(stop)	60.0			 ;# simulation time
+set val(stop)	100.0			 ;# simulation time
 #set val(dcset)	0.2			 ;# Duty Cycle offset
 set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol

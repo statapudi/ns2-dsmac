@@ -47,7 +47,10 @@ class DGTree: public Agent {
 	God* godinstance_;
 	nsaddr_t baseStation_;
 	int accessible_var_;
+	int potential_forwarders_;
+	int childcounts;
 	int num_forwarders_;
+	int num_acks_recvd_;
 	u_int8_t seq_num_;
 	nsaddr_t downStreamNeighbors[MAX_DOWNSTREAM_NEIGHBOURS];
 
@@ -65,6 +68,10 @@ protected:
 
 	inline int& accessible_var() {
 		return accessible_var_;
+	}
+
+	inline int& num_acks_recvd() {
+		return num_acks_recvd_;
 	}
 
 	inline int& neighbourCount() {
@@ -86,7 +93,7 @@ protected:
 	int buildNeighbourInfo();
 	void printdownStreamNeighbours();
 	void recv_dgtree_pkt(Packet*);
-	void send_dgtree_pkt(int,int);
+	void send_dgtree_pkt(nsaddr_t,int,int);
 	void reset_dgtree_pkt_timer();
 
 public:
