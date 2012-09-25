@@ -32,11 +32,14 @@ DGTree::DGTree(nsaddr_t id) :Agent(PT_DGTREE), pkt_timer_(this){
 int DGTree::command(int argc, const char* const * argv) {
 	if (argc == 2) {
 		if (strcasecmp(argv[1], "start") == 0) {
+			/*
+			 * Building neighborhood information
+			 */
 			neighbourcount_ = buildNeighbourInfo();
 			printf("Count:%d" , neighbourcount_ );
 			printdownStreamNeighbours();
 			/*
-			 * TODO: If node is base station, initiate the PARENT_HELLO message
+			 * If node is base station, initiate the PARENT_HELLO message
 			 */
 
 			if(ra_addr_ == baseStation_)
@@ -92,7 +95,7 @@ int DGTree::buildNeighbourInfo()
 	int j =0;
 	int count=0;
 	for(i = 0; i < nodeCount; i++){
-		if((ra_addr() != (nsaddr_t)i) && ((godinstance_->hops(ra_addr(), baseStation_) - godinstance_->hops((nsaddr_t)i, baseStation_)) ==1)){
+		if((ra_addr() != (nsaddr_t)i) && (godinstance_->hops(ra_addr(),(nsaddr_t)i) == 1) && (godinstance_->hops((nsaddr_t)i, baseStation_)- (godinstance_->hops(ra_addr(), baseStation_)) ==1)){
 			downStreamNeighbors[j++] = i;
 			count++;
 		}
@@ -103,9 +106,11 @@ int DGTree::buildNeighbourInfo()
 
 void DGTree::printdownStreamNeighbours(){
 	int i;
+	printf("**Node %d: ", ra_addr());
 	for(i=0;i<neighbourcount_;i++){
 		printf("%d , ", downStreamNeighbors[i]);
 	}
+	printf("\n");
 
 }
 
