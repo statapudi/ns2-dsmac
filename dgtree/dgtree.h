@@ -8,10 +8,15 @@
 #include <random.h>
 #include <classifier-port.h>
 #include <cmu-trace.h>
+#include <god.h>
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
+#define MAX_DOWNSTREAM_NEIGHBOURS 50
 #define MAX_FORWARDERS 1
+#define PARENT_HELLO 0
+#define CHILD_ACK 1
+#define CHILDREN_COUNT 2
 
 class DGTree;// forward declaration
 
@@ -37,39 +42,59 @@ class DGTree: public Agent {
 
 	/* Private members */
 	nsaddr_t ra_addr_;
+	int hop_;
+	int neighbourcount_;
+	God* godinstance_;
+	nsaddr_t baseStation_;
 	int accessible_var_;
-	int num_forwarders;
+	int num_forwarders_;
 	u_int8_t seq_num_;
-	nsaddr_t forwarder[MAX_FORWARDERS];
+	nsaddr_t downStreamNeighbors[MAX_DOWNSTREAM_NEIGHBOURS];
+
 
 protected:
 
 	PortClassifier* dmux_; // For passing packets up to agents.
 	Trace* logtarget_; // For logging.
-	inline nsaddr_t& ra_addr() {
-		return ra_addr_;
-	}
 	DGTree_PktTimer pkt_timer_; // Timer for sending packets.
 
 
-	/*inline dgtree_state& state() {
-		return state_;
-	}*/
+	inline nsaddr_t& ra_addr() {
+		return ra_addr_;
+	}
 
 	inline int& accessible_var() {
 		return accessible_var_;
 	}
 
+	inline int& neighbourCount() {
+		return neighbourcount_;
+	}
+
+	inline int& hop() {
+			return hop_;
+		}
+
+	inline int& num_forwarders() {
+		return num_forwarders_;
+	}
+	inline nsaddr_t& baseStation() {
+		return baseStation_;
+	}
+
 	void forward_data(Packet*);
+	int buildNeighbourInfo();
+	void printdownStreamNeighbours();
 	void recv_dgtree_pkt(Packet*);
-	void send_dgtree_pkt();
+	void send_dgtree_pkt(int,int);
 	void reset_dgtree_pkt_timer();
 
 public:
 
-	DGTree( nsaddr_t);
+	DGTree(nsaddr_t);
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
+	nsaddr_t forwarderset[MAX_FORWARDERS];
 
 };
 

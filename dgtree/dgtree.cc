@@ -8,31 +8,42 @@
 #include <iostream>
 #include <cmu-trace.h>
 
+
 int hdr_dgtree::offset_;
 
-DGTree::DGTree(nsaddr_t id) :
-	Agent(PT_DGTREE), pkt_timer_(this){
+DGTree::DGTree(nsaddr_t id) :Agent(PT_DGTREE), pkt_timer_(this){
 	int i = 0;
 	bind_bool("accessible_var_", &accessible_var_);
-
+	godinstance_ = God::instance();
+	assert(godinstance_ != 0);
 	ra_addr_ = id;
+	printf("Hello address: %d\n", ra_addr_);
+	baseStation_ = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
-	num_forwarders = MAX_FORWARDERS;
+	num_forwarders_ = MAX_FORWARDERS;
 	/* Forwarders are set to -1 initially. Will be changed to the actual
 	 addresses after determining them*/
-	for (i = 0; i < num_forwarders; i++)
-		forwarder[i] = -1;
+	for (i = 0; i < num_forwarders_; i++)
+		forwarderset[i] = -1;
 
 }
 
 int DGTree::command(int argc, const char* const * argv) {
 	if (argc == 2) {
 		if (strcasecmp(argv[1], "start") == 0) {
+			neighbourcount_ = buildNeighbourInfo();
+			printf("Count:%d" , neighbourcount_ );
+			printdownStreamNeighbours();
 			/*
 			 * TODO: If node is base station, initiate the PARENT_HELLO message
 			 */
 
+			if(ra_addr_ == baseStation_)
+			{
+				hop_ = 0;
+				send_dgtree_pkt(PARENT_HELLO,-1);
+			}
 			return TCL_OK;
 		}
 
@@ -41,7 +52,7 @@ int DGTree::command(int argc, const char* const * argv) {
 				sprintf(logtarget_->pt_->buffer(), "P %f _%d_ Routing Table",
 						CURRENT_TIME, ra_addr());
 				logtarget_->pt_->dump();
-				//rtable_.print(logtarget_);
+				//TODO: rtable_.print(logtarget_);
 			} else {
 				fprintf(stdout,
 						"%f _%d_ If you want to print this routing table "
@@ -74,18 +85,41 @@ int DGTree::command(int argc, const char* const * argv) {
 	return Agent::command(argc, argv);
 }
 
+int DGTree::buildNeighbourInfo()
+{
+	int nodeCount = godinstance_->nodes();
+	int i;
+	int j =0;
+	int count=0;
+	for(i = 0; i < nodeCount; i++){
+		if((ra_addr() != (nsaddr_t)i) && ((godinstance_->hops(ra_addr(), baseStation_) - godinstance_->hops((nsaddr_t)i, baseStation_)) ==1)){
+			downStreamNeighbors[j++] = i;
+			count++;
+		}
+
+	}
+	return count;
+}
+
+void DGTree::printdownStreamNeighbours(){
+	int i;
+	for(i=0;i<neighbourcount_;i++){
+		printf("%d , ", downStreamNeighbors[i]);
+	}
+
+}
+
 void DGTree::recv(Packet* p, Handler* h) {
 
 	struct hdr_cmn* ch = HDR_CMN(p);
 	struct hdr_ip* ih = HDR_IP(p);
-	cout << "Hello";
 	if (ih->saddr() == ra_addr()) {
 		// If there exists a loop, must drop the packet
 		if (ch->num_forwards() > 0) {
 			drop(p, DROP_RTR_ROUTE_LOOP);
 			return;
 		}
-		// else if this is a packet I am originating, must add IP header
+		// else if this is a packet I am originating, must add IP header length
 		else if (ch->num_forwards() == 0)
 			ch->size() += IP_HDR_LEN;
 	}
@@ -109,35 +143,67 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 	struct hdr_dgtree* ph = HDR_DGTREE(p);
 
 	/* All routing messages are sent from and to port RT_PORT,
-	 so we check it */assert(ih->sport() == RT_PORT);
+	 so we check it */
+	assert(ih->sport() == RT_PORT);
 	assert(ih->dport() == RT_PORT);
 
 	/* ... TODO: processing of dgtree packet ... */
-	printf("Hello packet!");
+	switch(ih->flowid()){
+	case PARENT_HELLO:
+		// Updating hop distance of current node from base station
+			hop_ = ph->hopcount_ + 1;
+			printf("***********Hello packet!***********\n");
+
+			break;
+
+
+	}
+
 
 	// Release resources
 	Packet::free(p);
 }
 
-void DGTree::send_dgtree_pkt()
+void DGTree::send_dgtree_pkt(int type, int flags)
 {
-
+	Packet* p = allocpkt();
+	struct hdr_cmn* ch = HDR_CMN(p);
+	struct hdr_ip* ih = HDR_IP(p);
+	struct hdr_dgtree* ph = HDR_DGTREE(p);
+	ph->pkt_src() = ra_addr();
+	ph->pkt_len() = 7;
+	ph->pkt_seq_num() = seq_num_++;
+	// TODO: switch case to determine value of flags
+	ph->flags() = flags;
+	ph->hopcount() = hop_;
+	ch->ptype() = PT_DGTREE;
+	ch->direction() = hdr_cmn::DOWN;
+	ch->size() = IP_HDR_LEN + ph->pkt_len();
+	ch->error() = 0;
+	ch->next_hop() = IP_BROADCAST;
+	ch->addr_type() = NS_AF_INET;
+	ih->saddr() = ra_addr();
+	ih->daddr() = IP_BROADCAST;
+	ih->sport() = RT_PORT;
+	ih->dport() = RT_PORT;
+	ih->ttl() = IP_DEF_TTL;
+	ih->flowid() = type;
+	Scheduler::instance().schedule(target_, p, JITTER);
 
 }
 
 void DGTree::forward_data(Packet* p) {
 
-	printf("Hello!");
 
 }
 
 void DGTree::reset_dgtree_pkt_timer() {
-	pkt_timer_.resched((double)5.0);
+	pkt_timer_.resched((double)3.0);
 }
 
 
 void DGTree_PktTimer::expire(Event* e) {
-	agent_->send_dgtree_pkt();
+	agent_->send_dgtree_pkt(0,-1);
 	agent_->reset_dgtree_pkt_timer();
 }
 /********** TCL Hooks************/
