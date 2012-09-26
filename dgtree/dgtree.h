@@ -21,6 +21,10 @@
 class DGTree;// forward declaration
 
 /* Timers */
+struct forwarder{
+	nsaddr_t addr_;
+	int childCount_;
+};
 
 class DGTree_PktTimer: public TimerHandler {
 public:
@@ -44,11 +48,12 @@ class DGTree: public Agent {
 	nsaddr_t ra_addr_;
 	int hop_;
 	int neighbourcount_;
+	bool forwarderSetupDone;
 	God* godinstance_;
 	nsaddr_t baseStation_;
 	int accessible_var_;
 	int potential_forwarders_;
-	int childcounts;
+	int childcountsrecvd;
 	int num_forwarders_;
 	int num_acks_recvd_;
 	u_int8_t seq_num_;
@@ -92,6 +97,7 @@ protected:
 	void forward_data(Packet*);
 	int buildNeighbourInfo();
 	void printdownStreamNeighbours();
+	void printForwarderSet();
 	void recv_dgtree_pkt(Packet*);
 	void send_dgtree_pkt(nsaddr_t,int,int);
 	void reset_dgtree_pkt_timer();
@@ -101,7 +107,7 @@ public:
 	DGTree(nsaddr_t);
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
-	nsaddr_t forwarderset[MAX_FORWARDERS];
+	forwarder forwarderset[MAX_FORWARDERS];
 
 };
 

@@ -14,7 +14,7 @@ struct hdr_dgtree {
 	nsaddr_t pkt_src_;
 	u_int16_t pkt_len_;
 	u_int8_t pkt_seq_num_;
-	u_int16_t flags_;
+	int flags_;
 	uint16_t hopcount_;
 
 	inline nsaddr_t& pkt_src() {
@@ -29,7 +29,7 @@ struct hdr_dgtree {
 	inline u_int8_t& pkt_seq_num() {
 		return pkt_seq_num_;
 	}
-	inline u_int16_t& flags() {
+	inline int& flags() {
 			return flags_;
 		}
 
