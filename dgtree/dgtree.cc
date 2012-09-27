@@ -23,10 +23,10 @@ DGTree::DGTree(nsaddr_t id) :
 	childcountsrecvd = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
-	num_forwarders_ = MAX_FORWARDERS;
+	num_desired_forwarders_ = MAX_FORWARDERS;
 	/* Forwarders are set to -1 initially. Will be changed to the actual
 	 addresses after determining them*/
-	for (i = 0; i < num_forwarders_; i++) {
+	for (i = 0; i < num_desired_forwarders_; i++) {
 		forwarderset[i].childCount_ = -1;
 		forwarderset[i].addr_ = -1;
 	}
@@ -115,7 +115,7 @@ int DGTree::buildNeighbourInfo() {
 
 	}
 	if (potential_forwarders_ < MAX_FORWARDERS) // Desired number of forwarders cannot be established.
-		num_forwarders_ = potential_forwarders_;
+		num_desired_forwarders_ = potential_forwarders_;
 
 	return j;
 }
@@ -133,8 +133,8 @@ void DGTree::printdownStreamNeighbours() {
 void DGTree::printForwarderSet() {
 	int i;
 	printf("**Node %ds with %d forwarders has forwarder set:", ra_addr_,
-			num_forwarders_);
-	for (i = 0; i < num_forwarders_; i++)
+			num_desired_forwarders_);
+	for (i = 0; i < num_desired_forwarders_; i++)
 		printf("%d ,", forwarderset[i].addr_);
 	printf("\n");
 
@@ -203,16 +203,20 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		 * Update number of potential forwarders
 		 * If Potential forwarders equal the number of PARENT_HELLOs received, initiate final forwarder selection
 		 */
-		if (!forwarderSetupDone) {
-			int c;
-			for (c = 0; c < num_forwarders_; c++) {
-				if (ph->flags() > forwarderset[c].childCount_) {
-					forwarderset[c].addr_ = ph->pkt_src();
-					forwarderset[c].childCount_ = ph->flags();
-					break;
-				}
+		//printf("**recieved count of %d from node %d at node %d\n", ph->flags_, ph->pkt_src_, ra_addr_);
 
+		if (!forwarderSetupDone) {
+			int c,least=0;
+			for (c = 1; c < num_desired_forwarders_; c++) {
+				if (forwarderset[c].childCount_ < forwarderset[least].childCount_) {
+					least = c;
+				}
 			}
+			if(ph->flags_ > forwarderset[least].childCount_){
+				forwarderset[least].childCount_ = ph->flags();
+				forwarderset[least].addr_ = ph->pkt_src_;
+			}
+
 			childcountsrecvd++;
 			if (childcountsrecvd == potential_forwarders_) {
 				forwarderSetupDone = true;
