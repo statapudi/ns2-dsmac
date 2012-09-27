@@ -13,7 +13,7 @@
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
 #define MAX_DOWNSTREAM_NEIGHBOURS 50
-#define MAX_FORWARDERS 1
+#define MAX_FORWARDERS 2
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
 #define CHILDREN_COUNT 2

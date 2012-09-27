@@ -48,9 +48,10 @@ int DGTree::command(int argc, const char* const * argv) {
 			int i;
 			if (ra_addr_ == baseStation_) {
 				hop_ = 0;
-			}
-			for (i = 0; i < neighbourcount_; i++) {
-				send_dgtree_pkt(downStreamNeighbors[i], PARENT_HELLO, -1);
+				for (i = 0; i < neighbourcount_; i++) {
+					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+							neighbourcount_);
+				}
 			}
 
 			return TCL_OK;
@@ -176,27 +177,27 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 	assert(ih->dport() == RT_PORT);
 
 	switch (ih->flowid()) {
-	case PARENT_HELLO:
-		/* Update hop distance of current node from base station
-		 * send CHILD_ACK to parent
-		 */
-		hop_ = ph->hopcount_ + 1;
-		send_dgtree_pkt(ph->pkt_src(), CHILD_ACK, -1);
-		break;
-	case CHILD_ACK:
-		/*
-		 * Update the number of acks received so far
-		 * If num_acks received is equal to its neighborhood count, initiate CHILDREN_COUNT message
-		 */
-		num_acks_recvd_++;
-		if (num_acks_recvd_ == neighbourcount_) {
-			for (i = 0; i < neighbourcount_; i++) {
-				send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-						num_acks_recvd_);
-			}
-		}
-		break;
+	/*case PARENT_HELLO:
+	 Update hop distance of current node from base station
+	 * send CHILD_ACK to parent
 
+	 hop_ = ph->hopcount_ + 1;
+	 send_dgtree_pkt(ph->pkt_src(), CHILD_ACK, -1);
+	 break;
+	 case CHILD_ACK:
+
+	 * Update the number of acks received so far
+	 * If num_acks received is equal to its neighborhood count, initiate CHILDREN_COUNT message
+
+	 num_acks_recvd_++;
+	 if (num_acks_recvd_ == neighbourcount_) {
+	 for (i = 0; i < neighbourcount_; i++) {
+	 send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+	 num_acks_recvd_);
+	 }
+	 }
+	 break;
+	 */
 	case CHILDREN_COUNT:
 		/*
 		 * Update number of potential forwarders
@@ -216,6 +217,10 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 			if (childcountsrecvd == potential_forwarders_) {
 				forwarderSetupDone = true;
 				printForwarderSet();
+				for (i = 0; i < neighbourcount_; i++) {
+					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+							neighbourcount_);
+				}
 			}
 
 		}
