@@ -21,6 +21,7 @@ DGTree::DGTree(nsaddr_t id) :
 	num_acks_recvd_ = 0; // used to know when to start sending children counts.
 	potential_forwarders_ = 0;
 	childcountsrecvd = 0;
+	numhellosrecvd_ = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
 	num_desired_forwarders_ = MAX_FORWARDERS;
@@ -49,8 +50,8 @@ int DGTree::command(int argc, const char* const * argv) {
 			if (ra_addr_ == baseStation_) {
 				hop_ = 0;
 				for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-							neighbourcount_);
+					send_dgtree_pkt(downStreamNeighbors[i], PARENT_HELLO,
+							-1);
 				}
 			}
 
@@ -99,6 +100,7 @@ int DGTree::buildNeighbourInfo() {
 	int nodeCount = godinstance_->nodes();
 	int i;
 	int j = 0;
+	int k = 0;
 	for (i = 0; i < nodeCount; i++) {
 		if ((ra_addr() != (nsaddr_t) i) && (godinstance_->hops(ra_addr(),
 				(nsaddr_t) i) == 1) && (godinstance_->hops((nsaddr_t) i,
@@ -110,10 +112,12 @@ int DGTree::buildNeighbourInfo() {
 				(nsaddr_t) i) == 1) && (godinstance_->hops(ra_addr(),
 				baseStation_)
 				- (godinstance_->hops((nsaddr_t) i, baseStation_)) == 1)) {
-			potential_forwarders_++;
+			potential_forwarder_set[k++] = i;
+
 		}
 
 	}
+	potential_forwarders_ = k;
 	if (potential_forwarders_ < MAX_FORWARDERS) // Desired number of forwarders cannot be established.
 		num_desired_forwarders_ = potential_forwarders_;
 
@@ -177,42 +181,51 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 	assert(ih->dport() == RT_PORT);
 
 	switch (ih->flowid()) {
-	/*case PARENT_HELLO:
-	 Update hop distance of current node from base station
-	 * send CHILD_ACK to parent
 
-	 hop_ = ph->hopcount_ + 1;
-	 send_dgtree_pkt(ph->pkt_src(), CHILD_ACK, -1);
-	 break;
-	 case CHILD_ACK:
+	case PARENT_HELLO:
+		/* Update hop distance of current node from base station
+		 * send CHILD_ACK to parent
+		 */
+		//printf("*******Hello!!!\n");
+		numhellosrecvd_++;
+		hop_ = ph->hopcount_ + 1;
+		if (numhellosrecvd_ == potential_forwarders_)
+			for (i = 0; i < potential_forwarders_; i++) {
+				send_dgtree_pkt(potential_forwarder_set[i], CHILD_ACK,-1);
+			}
 
-	 * Update the number of acks received so far
-	 * If num_acks received is equal to its neighborhood count, initiate CHILDREN_COUNT message
+		break;
 
-	 num_acks_recvd_++;
-	 if (num_acks_recvd_ == neighbourcount_) {
-	 for (i = 0; i < neighbourcount_; i++) {
-	 send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-	 num_acks_recvd_);
-	 }
-	 }
-	 break;
-	 */
+	case CHILD_ACK:
+
+		/* Update the number of acks received so far
+		 * If num_acks received is equal to its neighborhood count, initiate CHILDREN_COUNT message
+		 */
+		num_acks_recvd_++;
+		if (num_acks_recvd_ == neighbourcount_) {
+			for (i = 0; i < neighbourcount_; i++) {
+				send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+						num_acks_recvd_);
+			}
+		}
+		break;
+
 	case CHILDREN_COUNT:
 		/*
-		 * Update number of potential forwarders
-		 * If Potential forwarders equal the number of PARENT_HELLOs received, initiate final forwarder selection
+		 * Update potential forwarder set
+		 * If Potential forwarders equal the number of PARENT_HELLOs received, initiate final forwarder selection and next hop discovery
 		 */
 		//printf("**recieved count of %d from node %d at node %d\n", ph->flags_, ph->pkt_src_, ra_addr_);
 
 		if (!forwarderSetupDone) {
-			int c,least=0;
+			int c, least = 0;
 			for (c = 1; c < num_desired_forwarders_; c++) {
-				if (forwarderset[c].childCount_ < forwarderset[least].childCount_) {
+				if (forwarderset[c].childCount_
+						< forwarderset[least].childCount_) {
 					least = c;
 				}
 			}
-			if(ph->flags_ > forwarderset[least].childCount_){
+			if (ph->flags_ > forwarderset[least].childCount_) {
 				forwarderset[least].childCount_ = ph->flags();
 				forwarderset[least].addr_ = ph->pkt_src_;
 			}
@@ -221,9 +234,10 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 			if (childcountsrecvd == potential_forwarders_) {
 				forwarderSetupDone = true;
 				printForwarderSet();
+				//Initiating next hop discovery
 				for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-							neighbourcount_);
+					send_dgtree_pkt(downStreamNeighbors[i], PARENT_HELLO,
+							1);
 				}
 			}
 

@@ -12,7 +12,7 @@
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
-#define MAX_DOWNSTREAM_NEIGHBOURS 50
+#define MAX_NEIGHBOURS 50
 #define MAX_FORWARDERS 10
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
@@ -56,8 +56,10 @@ class DGTree: public Agent {
 	int childcountsrecvd;
 	int num_desired_forwarders_;
 	int num_acks_recvd_;
+	int numhellosrecvd_;
 	u_int8_t seq_num_;
-	nsaddr_t downStreamNeighbors[MAX_DOWNSTREAM_NEIGHBOURS];
+	nsaddr_t downStreamNeighbors[MAX_NEIGHBOURS];
+	nsaddr_t potential_forwarder_set[MAX_NEIGHBOURS];
 
 
 protected:

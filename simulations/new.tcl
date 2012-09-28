@@ -6,8 +6,8 @@
 set val(chan)	Channel/WirelessChannel	 ;# channel type
 set val(prop)	Propagation/TwoRayGround ;# radio-propagation model
 set val(netif)	Phy/WirelessPhy          ;# network interface type
-#set val(mac)	Mac/802_11               ;# MAC type
-set val(mac)	Mac/Simple               ;# MAC type
+set val(mac)	Mac/802_11               ;# MAC type
+#set val(mac)	Mac/Simple               ;# MAC type
 set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
 #set val(ifq) 	CMUPriQueue				 ;# interface queue type (for DSR)
 set val(ll)		LL                       ;# link layer type
@@ -23,8 +23,8 @@ set val(stop)	100.0			 ;# simulation time
 #set val(dcset)	0.2			 ;# Duty Cycle offset
 set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
-#set val(energymodel) EnergyModel
-#set val(initialenergy) 30000
+set val(energymodel) EnergyModel
+set val(initialenergy) 30000
 set AgentTrace  OFF
 set RouterTrace OFF
 set MacTrace    OFF
