@@ -6,8 +6,8 @@
 set val(chan)	Channel/WirelessChannel	 ;# channel type
 set val(prop)	Propagation/TwoRayGround ;# radio-propagation model
 set val(netif)	Phy/WirelessPhy          ;# network interface type
-#set val(mac)	Mac/802_11               ;# MAC type
-set val(mac)	Mac/Simple               ;# MAC type
+set val(mac)	Mac/802_11               ;# MAC type
+#set val(mac)	Mac/Simple               ;# MAC type
 set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
 #set val(ifq) 	CMUPriQueue				 ;# interface queue type (for DSR)
 set val(ll)		LL                       ;# link layer type
@@ -25,7 +25,7 @@ set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
 #set val(energymodel) EnergyModel
 #set val(initialenergy) 30000
-set AgentTrace  OFF
+set AgentTrace  ON
 set RouterTrace OFF
 set MacTrace    OFF
 
@@ -86,6 +86,33 @@ $ns_ node-config -adhocRouting $val(rp) \
 # default transmission 250m (should change it later...)
 
 source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/scenario.tcl"
+set null_(0) [new Agent/Null]
+$ns_ attach-agent $node_(0) $null_(0)
+
+set udp_(0) [new Agent/UDP]
+$ns_ attach-agent $node_(11) $udp_(0)
+set cbr_(0) [new Application/Traffic/CBR]
+$cbr_(0) set packetSize_ 64
+$cbr_(0) set interval_ 200.000000
+$cbr_(0) set random_ 1
+$cbr_(0) set maxpkts_ 1
+$cbr_(0) attach-agent $udp_(0)
+$ns_ connect $udp_(0) $null_(0)
+$ns_ at 300.0 "$cbr_(0) start"
+$ns_ at 400.0 "$cbr_(0) stop"
+
+set udp_(1) [new Agent/UDP]
+$ns_ attach-agent $node_(5) $udp_(1)
+set cbr_(1) [new Application/Traffic/CBR]
+$cbr_(1) set packetSize_ 64
+$cbr_(1) set interval_ 200.000000
+$cbr_(1) set random_ 1
+$cbr_(1) set maxpkts_ 1
+$cbr_(1) attach-agent $udp_(1)
+$ns_ connect $udp_(1) $null_(0)
+$ns_ at 320.0 "$cbr_(1) start"
+$ns_ at 400.0 "$cbr_(1) stop"
+
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {

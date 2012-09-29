@@ -60,6 +60,7 @@ class DGTree: public Agent {
 	u_int8_t seq_num_;
 	nsaddr_t downStreamNeighbors[MAX_NEIGHBOURS];
 	nsaddr_t potential_forwarder_set[MAX_NEIGHBOURS];
+	int roundrobin;
 
 
 protected:

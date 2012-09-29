@@ -16,6 +16,7 @@ DGTree::DGTree(nsaddr_t id) :
 	bind_bool("accessible_var_", &accessible_var_);
 	godinstance_ = God::instance();
 	assert(godinstance_ != 0);
+	roundrobin = 0;
 	ra_addr_ = id;
 	baseStation_ = 0;
 	num_acks_recvd_ = 0; // used to know when to start sending children counts.
@@ -147,6 +148,7 @@ void DGTree::recv(Packet* p, Handler* h) {
 
 	struct hdr_cmn* ch = HDR_CMN(p);
 	struct hdr_ip* ih = HDR_IP(p);
+
 	if (ih->saddr() == ra_addr()) {
 		// If there exists a loop, must drop the packet
 		if (ch->num_forwards() > 0) {
@@ -168,6 +170,7 @@ void DGTree::recv(Packet* p, Handler* h) {
 			drop(p, DROP_RTR_TTL);
 			return;
 		}
+
 		forward_data(p);
 	}
 }
@@ -275,6 +278,27 @@ void DGTree::send_dgtree_pkt(nsaddr_t dest, int type, int flags) {
 }
 
 void DGTree::forward_data(Packet* p) {
+	struct hdr_cmn* ch = HDR_CMN(p);
+	struct hdr_ip* ih = HDR_IP(p);
+
+
+	if (ch->direction() == hdr_cmn::UP && ((u_int32_t) ih->daddr()
+			== IP_BROADCAST || ih->daddr() == ra_addr())) {
+		printf("***HELLO!!\n");
+		dmux_->recv(p, 0);
+		return;
+	} else {
+
+		ch->direction() = hdr_cmn::DOWN;
+		ch->addr_type() = NS_AF_INET;
+
+		nsaddr_t next_hop = forwarderset[roundrobin].addr_;
+		printf("Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n", ih->saddr(),ih->daddr(), ra_addr_, next_hop);
+		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
+
+		ch->next_hop() = next_hop;
+		Scheduler::instance().schedule(target_, p, 0.0);
+	}
 
 }
 

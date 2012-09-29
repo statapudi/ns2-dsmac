@@ -9,7 +9,6 @@ set val(netif)	Phy/WirelessPhy          ;# network interface type
 set val(mac)	Mac/802_11               ;# MAC type
 #set val(mac)	Mac/Simple               ;# MAC type
 set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
-#set val(ifq) 	CMUPriQueue				 ;# interface queue type (for DSR)
 set val(ll)		LL                       ;# link layer type
 set val(ant)	Antenna/OmniAntenna      ;# antenna model
 set val(x) 		250		 ;# X dimension of topology
@@ -19,13 +18,12 @@ set val(y) 		250		 ;# Y dimension of topology
 set val(ifqlen) 50                       ;# max packet in ifq
 set val(nn)     6            	         ;# number of nodes
 set val(seed)	0.0
-set val(stop)	100.0			 ;# simulation time
-#set val(dcset)	0.2			 ;# Duty Cycle offset
+set val(stop)	200.0			 ;# simulation time
 set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
 set val(energymodel) EnergyModel
 set val(initialenergy) 30000
-set AgentTrace  OFF
+set AgentTrace  ON
 set RouterTrace OFF
 set MacTrace    OFF
 
@@ -128,6 +126,20 @@ $god_ set-dist 3 4 2
 $god_ set-dist 3 5 1
 $god_ set-dist 4 5 1
 
+set null_(0) [new Agent/Null]
+$ns_ attach-agent $node_(0) $null_(0)
+
+set udp_(0) [new Agent/UDP]
+$ns_ attach-agent $node_(4) $udp_(0)
+set cbr_(0) [new Application/Traffic/CBR]
+$cbr_(0) set packetSize_ 64
+$cbr_(0) set interval_ 100.000000
+$cbr_(0) set random_ 1
+$cbr_(0) set maxpkts_ 1
+$cbr_(0) attach-agent $udp_(0)
+$ns_ connect $udp_(0) $null_(0)
+$ns_ at 60.0 "$cbr_(0) start"
+$ns_ at 150.0 "$cbr_(0) stop"
 
 
 # Tell nodes when the simulation ends
