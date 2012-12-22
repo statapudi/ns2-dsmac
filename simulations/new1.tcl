@@ -12,20 +12,20 @@ set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
 #set val(ifq) 	CMUPriQueue				 ;# interface queue type (for DSR)
 set val(ll)		LL                       ;# link layer type
 set val(ant)	Antenna/OmniAntenna      ;# antenna model
-set val(x) 		250		 ;# X dimension of topology
-set val(y) 		250		 ;# Y dimension of topology
+set val(x) 		1000		 ;# X dimension of topology
+set val(y) 		1000		 ;# Y dimension of topology
 #set val(cp)		""	         ;# node movement model file
 #set val(sc)		""		 ;# traffic model file
 set val(ifqlen) 50                       ;# max packet in ifq
-set val(nn)     20            	         ;# number of nodes
+set val(nn)     50            	         ;# number of nodes
 set val(seed)	10.0
-set val(stop)	500.0			 ;# simulation time
+set val(stop)	250.0			 ;# simulation time
 #set val(dcset)	0.2			 ;# Duty Cycle offset
 set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
-#set val(energymodel) EnergyModel
-#set val(initialenergy) 30000
-set AgentTrace  ON
+set val(energymodel) EnergyModel
+set val(initialenergy) 30000
+set AgentTrace  OFF
 set RouterTrace OFF
 set MacTrace    OFF
 
@@ -85,12 +85,13 @@ $ns_ node-config -adhocRouting $val(rp) \
 # Provide initial (X,Y, for now Z=0) co-ordinates for mobilenodes
 # default transmission 250m (should change it later...)
 
-source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/scenario.tcl"
+source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/positions.tcl"
+source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/hopcounts.tcl"
 set null_(0) [new Agent/Null]
 $ns_ attach-agent $node_(0) $null_(0)
 
 set udp_(0) [new Agent/UDP]
-$ns_ attach-agent $node_(11) $udp_(0)
+$ns_ attach-agent $node_(13) $udp_(0)
 set cbr_(0) [new Application/Traffic/CBR]
 $cbr_(0) set packetSize_ 64
 $cbr_(0) set interval_ 200.000000
@@ -98,11 +99,11 @@ $cbr_(0) set random_ 1
 $cbr_(0) set maxpkts_ 1
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
-$ns_ at 300.0 "$cbr_(0) start"
-$ns_ at 400.0 "$cbr_(0) stop"
+$ns_ at 100.0 "$cbr_(0) start"
+$ns_ at 100.0 "$cbr_(0) stop"
 
 set udp_(1) [new Agent/UDP]
-$ns_ attach-agent $node_(5) $udp_(1)
+$ns_ attach-agent $node_(15) $udp_(1)
 set cbr_(1) [new Application/Traffic/CBR]
 $cbr_(1) set packetSize_ 64
 $cbr_(1) set interval_ 200.000000
@@ -110,13 +111,14 @@ $cbr_(1) set random_ 1
 $cbr_(1) set maxpkts_ 1
 $cbr_(1) attach-agent $udp_(1)
 $ns_ connect $udp_(1) $null_(0)
-$ns_ at 320.0 "$cbr_(1) start"
-$ns_ at 400.0 "$cbr_(1) stop"
+$ns_ at 120.0 "$cbr_(1) start"
+$ns_ at 130.0 "$cbr_(1) stop"
 
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
     $ns_ at $val(stop)  "$node_($i) reset";
+    $ns_ at 150.0 "[$node_($i) agent 255] print_forwarderset"
 }
 
 $ns_ at $val(stop)  "stop"

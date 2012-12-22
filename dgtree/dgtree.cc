@@ -23,6 +23,7 @@ DGTree::DGTree(nsaddr_t id) :
 	potential_forwarders_ = 0;
 	childcountsrecvd = 0;
 	numhellosrecvd_ = 0;
+	wchainlen = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
 	num_desired_forwarders_ = MAX_FORWARDERS;
@@ -32,6 +33,9 @@ DGTree::DGTree(nsaddr_t id) :
 		forwarderset[i].childCount_ = -1;
 		forwarderset[i].addr_ = -1;
 	}
+	//initialize schedule table
+
+
 
 }
 
@@ -43,7 +47,7 @@ int DGTree::command(int argc, const char* const * argv) {
 			 */
 			forwarderSetupDone = false;
 			neighbourcount_ = buildNeighbourInfo();
-			//printdownStreamNeighbours();
+			printdownStreamNeighbours();
 			/*
 			 * Initiating the PARENT_HELLO message
 			 */
@@ -51,14 +55,17 @@ int DGTree::command(int argc, const char* const * argv) {
 			if (ra_addr_ == baseStation_) {
 				hop_ = 0;
 				for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], PARENT_HELLO,
-							-1);
+					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+											neighbourcount_);
 				}
 			}
 
 			return TCL_OK;
 		}
-
+		else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
+			printForwarderSet();
+			return TCL_OK;
+		}
 		else if (strcasecmp(argv[1], "print_rtable") == 0) {
 			if (logtarget_ != 0) {
 				sprintf(logtarget_->pt_->buffer(), "P %f _%d_ Routing Table",
@@ -189,7 +196,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		/* Update hop distance of current node from base station
 		 * send CHILD_ACK to parent
 		 */
-		//printf("*******Hello!!!\n");
+		//printf("**recieved parenthello from node %d at node %d\n", ph->pkt_src_, ra_addr_);
 		numhellosrecvd_++;
 		hop_ = ph->hopcount_ + 1;
 		if (numhellosrecvd_ == potential_forwarders_)
@@ -200,7 +207,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		break;
 
 	case CHILD_ACK:
-
+		//printf("**recieved childack from node %d at node %d\n", ph->pkt_src_, ra_addr_);
 		/* Update the number of acks received so far
 		 * If num_acks received is equal to its neighborhood count, initiate CHILDREN_COUNT message
 		 */
@@ -220,7 +227,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		 */
 		//printf("**recieved count of %d from node %d at node %d\n", ph->flags_, ph->pkt_src_, ra_addr_);
 
-		if (!forwarderSetupDone) {
+
 			int c, least = 0;
 			for (c = 1; c < num_desired_forwarders_; c++) {
 				if (forwarderset[c].childCount_
@@ -234,17 +241,16 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 			}
 
 			childcountsrecvd++;
-			if (childcountsrecvd == potential_forwarders_) {
-				forwarderSetupDone = true;
-				printForwarderSet();
-				//Initiating next hop discovery
-				for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], PARENT_HELLO,
-							1);
-				}
-			}
 
-		}
+
+				//Initiating next hop discovery
+			if(forwarderSetupDone == false){
+			for (i = 0; i < neighbourcount_; i++) {
+					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+											neighbourcount_);
+				}
+			forwarderSetupDone = true;
+			}
 		break;
 	}
 	// Release resources
@@ -273,6 +279,7 @@ void DGTree::send_dgtree_pkt(nsaddr_t dest, int type, int flags) {
 	ih->dport() = RT_PORT;
 	ih->ttl() = IP_DEF_TTL;
 	ih->flowid() = type;
+
 	Scheduler::instance().schedule(target_, p, JITTER + 0.025);
 
 }
@@ -284,7 +291,6 @@ void DGTree::forward_data(Packet* p) {
 
 	if (ch->direction() == hdr_cmn::UP && ((u_int32_t) ih->daddr()
 			== IP_BROADCAST || ih->daddr() == ra_addr())) {
-		printf("***HELLO!!\n");
 		dmux_->recv(p, 0);
 		return;
 	} else {
@@ -295,8 +301,15 @@ void DGTree::forward_data(Packet* p) {
 		nsaddr_t next_hop = forwarderset[roundrobin].addr_;
 		printf("Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n", ih->saddr(),ih->daddr(), ra_addr_, next_hop);
 		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
-
 		ch->next_hop() = next_hop;
+		/*
+		 * Look up the scheduling table to see if its your turn
+		 * If yes schedule the packet immediately.
+		 * else wait on a condition variable
+		 */
+
+
+
 		Scheduler::instance().schedule(target_, p, 0.0);
 	}
 
@@ -307,7 +320,6 @@ void DGTree::reset_dgtree_pkt_timer() {
 }
 
 void DGTree_PktTimer::expire(Event* e) {
-	//agent_->send_dgtree_pkt(0,-1);
 	agent_->reset_dgtree_pkt_timer();
 }
 /********** TCL Hooks************/

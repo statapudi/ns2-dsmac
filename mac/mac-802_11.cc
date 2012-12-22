@@ -54,9 +54,9 @@
 #include "mac-802_11.h"
 #include "cmu-trace.h"
 
-// Added by Sushmita to support event tracing
 #include "agent.h"
 #include "basetrace.h"
+#include "dgtree/dgtree.h"
 
 
 /* our backoff timer doesn't count down in idle times during a
@@ -1564,11 +1564,10 @@ void
 Mac802_11::recv(Packet *p, Handler *h)
 {
 	struct hdr_cmn *hdr = HDR_CMN(p);
-	struct hdr_ip *iph = HDR_IP(p);
 	/*
 	 * Sanity Check
 	 */
-	//printf("MAC___Packet ---- from node %d to node %d is now at %d\n", iph->saddr(),iph->daddr(), addr());
+
 	assert(initialized());
 
 	/*
@@ -1585,6 +1584,7 @@ Mac802_11::recv(Packet *p, Handler *h)
 	 *  interface.
 	 *
 	 */
+
 
 	/*
 	 *  If the interface is currently in transmit mode, then
@@ -1610,6 +1610,7 @@ Mac802_11::recv(Packet *p, Handler *h)
 			
 			
 		mhRecv_.start(txtime(p));
+
 	} else {
 		/*
 		 *  If the power of the incoming packet is smaller than the
@@ -1630,15 +1631,17 @@ Mac802_11::recv_timer()
 	u_int32_t src; 
 	hdr_cmn *ch = HDR_CMN(pktRx_);
 	hdr_mac802_11 *mh = HDR_MAC802_11(pktRx_);
+	struct hdr_ip *iph = HDR_IP(pktRx_);
 	u_int32_t dst = ETHER_ADDR(mh->dh_ra);
 	u_int32_t ap_dst = ETHER_ADDR(mh->dh_3a);
 	u_int8_t  type = mh->dh_fc.fc_type;
 	u_int8_t  subtype = mh->dh_fc.fc_subtype;
+	char command[256];
 
 	assert(pktRx_);
 	assert(rx_state_ == MAC_RECV || rx_state_ == MAC_COLL);
 	
-	
+
         /*
          *  If the interface is in TRANSMIT mode when this packet
          *  "arrives", then I would never have seen it and should
@@ -1658,12 +1661,14 @@ Mac802_11::recv_timer()
 		goto done;
 	}
 
+
 	/*
 	 * Check to see if this packet was received with enough
 	 * bit errors that the current level of FEC still could not
 	 * fix all of the problems - ie; after FEC, the checksum still
 	 * failed.
 	 */
+
 	if( ch->error() ) {
 		Packet::free(pktRx_);
 		set_nav(usec(phymib_.getEIFS()));
@@ -1693,8 +1698,27 @@ Mac802_11::recv_timer()
 	    netif_->node()->energy_model()->adaptivefidelity()) {
 		src = ETHER_ADDR(mh->dh_ta);
 		netif_->node()->energy_model()->add_neighbor(src);
+
 	}
 	/*
+	 * Add the source node of this packet to the scheduling table of THIS node, if not existing already
+	 * if already there, move the turn-pointer to the next node in the schedule
+	 * if the turn-pointer points to the current node signal it
+	 */
+
+	if(iph->ttl()!=0 && iph->saddr()!=0 && ch->ptype() != PT_DGTREE && subtype == MAC_Subtype_Data && type == MAC_Type_Data){
+		printf("MAC___ dataPacket ---- from node %d to node %d is now at %d and macdst is %d\n",iph->saddr() ,iph->daddr(),addr(), dst);
+		printf("*******%d\n", iph->saddr());
+		DGTree * dgtreeagent;
+		sprintf(command, "[$node_($i) agent 255] setRoutingAgent");
+		Tcl& tcl = Tcl::instance();
+		tcl.eval(command);
+		const char* ref = tcl.result();
+		dgtreeagent = (DGTree*)tcl.lookup(ref);
+
+	}
+
+		/*
 	 * Address Filtering
 	 */
 	if(dst != (u_int32_t)index_ && dst != MAC_BROADCAST) {
@@ -1702,12 +1726,15 @@ Mac802_11::recv_timer()
 		 *  We don't want to log this event, so we just free
 		 *  the packet instead of calling the drop routine.
 		 */
+
 		discard(pktRx_, "---");
 		goto done;
 	}
 	
-	
+
+
 	if ( dst == MAC_BROADCAST && mh->dh_fc.fc_to_ds == 1 && mh->dh_fc.fc_from_ds == 1) {
+
 		if (addr() != bss_id_) {
  			discard(pktRx_, "---");
  			goto done;
@@ -1896,10 +1923,10 @@ Mac802_11::recvCTS(Packet *p)
 void
 Mac802_11::recvDATA(Packet *p)
 {
+
 	struct hdr_mac802_11 *dh = HDR_MAC802_11(p);
 	u_int32_t dst, src, size;
 	struct hdr_cmn *ch = HDR_CMN(p);
-
 	dst = ETHER_ADDR(dh->dh_ra);
 	src = ETHER_ADDR(dh->dh_ta);
 	size = ch->size();

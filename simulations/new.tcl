@@ -11,8 +11,8 @@ set val(mac)	Mac/802_11               ;# MAC type
 set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
 set val(ll)		LL                       ;# link layer type
 set val(ant)	Antenna/OmniAntenna      ;# antenna model
-set val(x) 		250		 ;# X dimension of topology
-set val(y) 		250		 ;# Y dimension of topology
+set val(x) 		1000		 ;# X dimension of topology
+set val(y) 		1000		 ;# Y dimension of topology
 #set val(cp)		""	         ;# node movement model file
 #set val(sc)		""		 ;# traffic model file
 set val(ifqlen) 50                       ;# max packet in ifq
@@ -84,29 +84,29 @@ $ns_ node-config -adhocRouting $val(rp) \
 # default transmission 250m (should change it later...)
 
 # Node 0 is the base station
-$node_(0) set X_ 110.0
-$node_(0) set Y_ 230.0
+$node_(0) set X_ 100.0
+$node_(0) set Y_ 100.0
 $node_(0) set Z_ 0.0
 
-$node_(2) set X_ 130.0
-$node_(2) set Y_ 210.0
-$node_(2) set Z_ 0.0
+$node_(1) set X_ 30.0
+$node_(1) set Y_ 300.0
+$node_(1) set Z_ 0.0
 
-$node_(4) set X_ 90.0
-$node_(4) set Y_ 200.0
+$node_(4) set X_ 0.0
+$node_(4) set Y_ 500.0
 $node_(4) set Z_ 0.0
 
-$node_(3) set X_ 133.0
-$node_(3) set Y_ 161.0
-$node_(3) set Z_ 0.0
-
-$node_(5) set X_ 212.0
-$node_(5) set Y_ 212.0
+$node_(5) set X_ 200.0
+$node_(5) set Y_ 500.0
 $node_(5) set Z_ 0.0
 
-$node_(1) set X_ 106.0
-$node_(1) set Y_ 232.0
-$node_(1) set Z_ 0.0
+$node_(3) set X_ 170.0
+$node_(3) set Y_ 300.0
+$node_(3) set Z_ 0.0
+
+$node_(2) set X_ 100.0
+$node_(2) set Y_ 300.0
+$node_(2) set Z_ 0.0
 
 
 # Load the god object with shortest hop information
@@ -131,6 +131,8 @@ $ns_ attach-agent $node_(0) $null_(0)
 
 set udp_(0) [new Agent/UDP]
 $ns_ attach-agent $node_(4) $udp_(0)
+#set udp_(1) [new Agent/UDP]
+#$ns_ attach-agent $node_(5) $udp_(1)
 set cbr_(0) [new Application/Traffic/CBR]
 $cbr_(0) set packetSize_ 64
 $cbr_(0) set interval_ 100.000000
@@ -138,8 +140,17 @@ $cbr_(0) set random_ 1
 $cbr_(0) set maxpkts_ 1
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
-$ns_ at 60.0 "$cbr_(0) start"
+#set cbr_(1) [new Application/Traffic/CBR]
+#$cbr_(1) set packetSize_ 64
+#$cbr_(1) set interval_ 100.000000
+#$cbr_(1) set random_ 1
+#$cbr_(1) set maxpkts_ 1
+#$cbr_(1) attach-agent $udp_(1)
+#$ns_ connect $udp_(1) $null_(0)
+$ns_ at 100.0 "$cbr_(0) start"
+#$ns_ at 60.0 "$cbr_(1) start"
 $ns_ at 150.0 "$cbr_(0) stop"
+#$ns_ at 150.0 "$cbr_(1) stop"
 
 
 # Tell nodes when the simulation ends
