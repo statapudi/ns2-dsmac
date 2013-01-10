@@ -13,6 +13,8 @@
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
 #define MAX_NEIGHBOURS 50
+#define MAXWAITCHAIN 15
+#define MAX_BACKLOG 10
 #define MAX_FORWARDERS 10
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
@@ -24,6 +26,10 @@ class DGTree;// forward declaration
 struct forwarder{
 	nsaddr_t addr_;
 	int childCount_;
+};
+struct NodeInfo{
+	nsaddr_t id;
+	int currqlen;
 };
 
 class DGTree_PktTimer: public TimerHandler {
@@ -46,9 +52,15 @@ class DGTree: public Agent {
 
 	/* Private members */
 	nsaddr_t ra_addr_;
+	Packet* backlog[MAX_BACKLOG];
+	nsaddr_t stable[MAXWAITCHAIN];
 	int hop_;
 	int neighbourcount_;
 	bool forwarderSetupDone;
+	int currwaitlen;
+	int totalwaitlen;
+	int tablelen;
+	int currbacklog;
 	God* godinstance_;
 	nsaddr_t baseStation_;
 	int accessible_var_;
@@ -98,12 +110,15 @@ protected:
 	}
 
 	void forward_data(Packet*);
+	//void* PrintHello(void*);
 	int buildNeighbourInfo();
 	void printdownStreamNeighbours();
 	void printForwarderSet();
 	void recv_dgtree_pkt(Packet*);
 	void send_dgtree_pkt(nsaddr_t,int,int);
 	void reset_dgtree_pkt_timer();
+	void clearBacklog();
+	void addBacklog(Packet*);
 
 public:
 

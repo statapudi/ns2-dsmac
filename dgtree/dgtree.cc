@@ -10,19 +10,25 @@
 
 int hdr_dgtree::offset_;
 
+
+
 DGTree::DGTree(nsaddr_t id) :
 	Agent(PT_DGTREE), pkt_timer_(this) {
 	int i = 0;
+
 	bind_bool("accessible_var_", &accessible_var_);
 	godinstance_ = God::instance();
 	assert(godinstance_ != 0);
 	roundrobin = 0;
 	ra_addr_ = id;
-	baseStation_ = 0;
 	num_acks_recvd_ = 0; // used to know when to start sending children counts.
 	potential_forwarders_ = 0;
 	childcountsrecvd = 0;
 	numhellosrecvd_ = 0;
+	currwaitlen = 0;
+	currbacklog = 0;
+	totalwaitlen = 0;
+	tablelen = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
 	num_desired_forwarders_ = MAX_FORWARDERS;
@@ -35,7 +41,9 @@ DGTree::DGTree(nsaddr_t id) :
 
 }
 
+
 int DGTree::command(int argc, const char* const * argv) {
+
 	if (argc == 2) {
 		if (strcasecmp(argv[1], "start") == 0) {
 
@@ -79,9 +87,10 @@ int DGTree::command(int argc, const char* const * argv) {
 			/*
 			 * Building neighborhood information
 			 */
+			baseStation_ = (nsaddr_t) atoi(argv[2]);
 			forwarderSetupDone = false;
 			neighbourcount_ = buildNeighbourInfo();
-			printdownStreamNeighbours();
+			//printdownStreamNeighbours();
 			/*
 			 * Initiating the PARENT_HELLO message
 			 */
@@ -216,7 +225,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 
 		int c, least = 0;
 		for (c = 0; c < num_desired_forwarders_; c++) {
-			if(forwarderset[c].childCount_ == -1){
+			if (forwarderset[c].childCount_ == -1) {
 				least = c;
 				break;
 			}
@@ -290,9 +299,34 @@ void DGTree::forward_data(Packet* p) {
 				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
 		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
-		Scheduler::instance().schedule(target_, p, 0.0);
+
+		/*
+		 * If its your turn, go ahead and proceed to MAC contention.
+		 * Else, add to backlog
+		 */
+		addBacklog(p);
+		if(currwaitlen == 0)
+			clearBacklog();
+
 	}
 
+}
+
+void DGTree::clearBacklog(){
+	int i;
+	for(i=0; i< currbacklog;i++){
+		Scheduler::instance().schedule(target_, backlog[i], 0.0);
+	}
+	currbacklog = 0;
+
+}
+
+void DGTree::addBacklog(Packet *p){
+	if(currbacklog == MAX_BACKLOG){
+		Scheduler::instance().schedule(target_, backlog[i], 0.0);
+	}
+	else
+	backlog[currbacklog++] = p;
 }
 
 void DGTree::reset_dgtree_pkt_timer() {

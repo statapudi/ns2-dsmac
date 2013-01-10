@@ -74,6 +74,8 @@ $ns_ node-config -adhocRouting $val(rp) \
 		 -agentTrace $AgentTrace \
 		 -routerTrace $RouterTrace \
 		 -macTrace $MacTrace \
+		 -energyModel $val(energymodel) \
+		 -initialEnergy $val(initialenergy) \
 		 -movementTrace OFF
 	
 #Disable random motion of the nodes 
