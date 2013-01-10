@@ -50,7 +50,7 @@ int DGTree::command(int argc, const char* const * argv) {
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
 			num_desired_forwarders_ = childcountsrecvd;
-			printForwarderSet();
+			//printForwarderSet();
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_rtable") == 0) {
 			if (logtarget_ != 0) {
@@ -294,9 +294,9 @@ void DGTree::forward_data(Packet* p) {
 		ch->addr_type() = NS_AF_INET;
 
 		nsaddr_t next_hop = forwarderset[roundrobin].addr_;
-		printf(
-				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
-				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
+//		printf(
+//				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
+//				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
 		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
 
@@ -323,7 +323,7 @@ void DGTree::clearBacklog(){
 
 void DGTree::addBacklog(Packet *p){
 	if(currbacklog == MAX_BACKLOG){
-		Scheduler::instance().schedule(target_, backlog[i], 0.0);
+		Scheduler::instance().schedule(target_, p, 0.0);
 	}
 	else
 	backlog[currbacklog++] = p;
