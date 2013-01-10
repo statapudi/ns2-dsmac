@@ -1701,22 +1701,22 @@ Mac802_11::recv_timer()
 
 	}
 	/*
-	 * Add the source node of this packet to the scheduling table of THIS node, if not existing already
-	 * if already there, move the turn-pointer to the next node in the schedule
-	 * if the turn-pointer points to the current node signal it
+	 * Add the source node of this packet to the scheduling table of THIS node, if not existing already.
+	 * else If already there, move the turn-pointer to the next node in the schedule; ie, decrement the 'currwaitlen'
+	 * if the turn-pointer points to the current node signal it; ie, if currwaitlen == 0, signal the node's routing agent
 	 */
 
-	if(iph->ttl()!=0 && iph->saddr()!=0 && ch->ptype() != PT_DGTREE && subtype == MAC_Subtype_Data && type == MAC_Type_Data){
-		printf("MAC___ dataPacket ---- from node %d to node %d is now at %d and macdst is %d\n",iph->saddr() ,iph->daddr(),addr(), dst);
-		printf("*******%d\n", iph->saddr());
-		DGTree * dgtreeagent;
-		sprintf(command, "[$node_($i) agent 255] setRoutingAgent");
-		Tcl& tcl = Tcl::instance();
-		tcl.eval(command);
-		const char* ref = tcl.result();
-		dgtreeagent = (DGTree*)tcl.lookup(ref);
-
-	}
+//	if(iph->ttl()!=0 && iph->saddr()!=0 && ch->ptype() != PT_DGTREE && subtype == MAC_Subtype_Data && type == MAC_Type_Data){
+//		printf("MAC___ dataPacket ---- from node %d to node %d is now at %d and macdst is %d\n",iph->saddr() ,iph->daddr(),addr(), dst);
+//		printf("*******%d\n", iph->saddr());
+//		DGTree * dgtreeagent;
+//		sprintf(command, "[$node_($i) agent 255] setRoutingAgent");
+//		Tcl& tcl = Tcl::instance();
+//		tcl.eval(command);
+//		const char* ref = tcl.result();
+//		dgtreeagent = (DGTree*)tcl.lookup(ref);
+//
+//	}
 
 		/*
 	 * Address Filtering

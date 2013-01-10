@@ -23,7 +23,6 @@ DGTree::DGTree(nsaddr_t id) :
 	potential_forwarders_ = 0;
 	childcountsrecvd = 0;
 	numhellosrecvd_ = 0;
-	wchainlen = 0;
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
 	num_desired_forwarders_ = MAX_FORWARDERS;
@@ -33,40 +32,19 @@ DGTree::DGTree(nsaddr_t id) :
 		forwarderset[i].childCount_ = -1;
 		forwarderset[i].addr_ = -1;
 	}
-	//initialize schedule table
-
-
 
 }
 
 int DGTree::command(int argc, const char* const * argv) {
 	if (argc == 2) {
 		if (strcasecmp(argv[1], "start") == 0) {
-			/*
-			 * Building neighborhood information
-			 */
-			forwarderSetupDone = false;
-			neighbourcount_ = buildNeighbourInfo();
-			printdownStreamNeighbours();
-			/*
-			 * Initiating the PARENT_HELLO message
-			 */
-			int i;
-			if (ra_addr_ == baseStation_) {
-				hop_ = 0;
-				for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-											neighbourcount_);
-				}
-			}
 
 			return TCL_OK;
-		}
-		else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
+		} else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
+			num_desired_forwarders_ = childcountsrecvd;
 			printForwarderSet();
 			return TCL_OK;
-		}
-		else if (strcasecmp(argv[1], "print_rtable") == 0) {
+		} else if (strcasecmp(argv[1], "print_rtable") == 0) {
 			if (logtarget_ != 0) {
 				sprintf(logtarget_->pt_->buffer(), "P %f _%d_ Routing Table",
 						CURRENT_TIME, ra_addr());
@@ -97,6 +75,26 @@ int DGTree::command(int argc, const char* const * argv) {
 				return TCL_ERROR;
 			return TCL_OK;
 
+		} else if (strcmp(argv[1], "startBS") == 0) {
+			/*
+			 * Building neighborhood information
+			 */
+			forwarderSetupDone = false;
+			neighbourcount_ = buildNeighbourInfo();
+			printdownStreamNeighbours();
+			/*
+			 * Initiating the PARENT_HELLO message
+			 */
+			int i;
+			if (ra_addr_ == baseStation_) {
+				hop_ = 0;
+				for (i = 0; i < neighbourcount_; i++) {
+					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+							neighbourcount_);
+				}
+			}
+
+			return TCL_OK;
 		}
 
 	}
@@ -108,7 +106,6 @@ int DGTree::buildNeighbourInfo() {
 	int nodeCount = godinstance_->nodes();
 	int i;
 	int j = 0;
-	int k = 0;
 	for (i = 0; i < nodeCount; i++) {
 		if ((ra_addr() != (nsaddr_t) i) && (godinstance_->hops(ra_addr(),
 				(nsaddr_t) i) == 1) && (godinstance_->hops((nsaddr_t) i,
@@ -116,18 +113,7 @@ int DGTree::buildNeighbourInfo() {
 				== 1)) {
 			downStreamNeighbors[j++] = i;
 		}
-		if ((ra_addr() != (nsaddr_t) i) && (godinstance_->hops(ra_addr(),
-				(nsaddr_t) i) == 1) && (godinstance_->hops(ra_addr(),
-				baseStation_)
-				- (godinstance_->hops((nsaddr_t) i, baseStation_)) == 1)) {
-			potential_forwarder_set[k++] = i;
-
-		}
-
 	}
-	potential_forwarders_ = k;
-	if (potential_forwarders_ < MAX_FORWARDERS) // Desired number of forwarders cannot be established.
-		num_desired_forwarders_ = potential_forwarders_;
 
 	return j;
 }
@@ -201,7 +187,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		hop_ = ph->hopcount_ + 1;
 		if (numhellosrecvd_ == potential_forwarders_)
 			for (i = 0; i < potential_forwarders_; i++) {
-				send_dgtree_pkt(potential_forwarder_set[i], CHILD_ACK,-1);
+				send_dgtree_pkt(potential_forwarder_set[i], CHILD_ACK, -1);
 			}
 
 		break;
@@ -228,29 +214,31 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		//printf("**recieved count of %d from node %d at node %d\n", ph->flags_, ph->pkt_src_, ra_addr_);
 
 
-			int c, least = 0;
-			for (c = 1; c < num_desired_forwarders_; c++) {
-				if (forwarderset[c].childCount_
-						< forwarderset[least].childCount_) {
-					least = c;
-				}
+		int c, least = 0;
+		for (c = 0; c < num_desired_forwarders_; c++) {
+			if(forwarderset[c].childCount_ == -1){
+				least = c;
+				break;
 			}
-			if (ph->flags_ > forwarderset[least].childCount_) {
-				forwarderset[least].childCount_ = ph->flags();
-				forwarderset[least].addr_ = ph->pkt_src_;
+			if (forwarderset[c].childCount_ < forwarderset[least].childCount_) {
+				least = c;
 			}
+		}
+		if (ph->flags_ > forwarderset[least].childCount_) {
+			forwarderset[least].childCount_ = ph->flags();
+			forwarderset[least].addr_ = ph->pkt_src_;
+		}
 
-			childcountsrecvd++;
+		childcountsrecvd++;
 
-
-				//Initiating next hop discovery
-			if(forwarderSetupDone == false){
+		//Initiating next hop discovery
+		if (forwarderSetupDone == false) {
 			for (i = 0; i < neighbourcount_; i++) {
-					send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
-											neighbourcount_);
-				}
-			forwarderSetupDone = true;
+				send_dgtree_pkt(downStreamNeighbors[i], CHILDREN_COUNT,
+						neighbourcount_);
 			}
+			forwarderSetupDone = true;
+		}
 		break;
 	}
 	// Release resources
@@ -279,7 +267,6 @@ void DGTree::send_dgtree_pkt(nsaddr_t dest, int type, int flags) {
 	ih->dport() = RT_PORT;
 	ih->ttl() = IP_DEF_TTL;
 	ih->flowid() = type;
-
 	Scheduler::instance().schedule(target_, p, JITTER + 0.025);
 
 }
@@ -287,7 +274,6 @@ void DGTree::send_dgtree_pkt(nsaddr_t dest, int type, int flags) {
 void DGTree::forward_data(Packet* p) {
 	struct hdr_cmn* ch = HDR_CMN(p);
 	struct hdr_ip* ih = HDR_IP(p);
-
 
 	if (ch->direction() == hdr_cmn::UP && ((u_int32_t) ih->daddr()
 			== IP_BROADCAST || ih->daddr() == ra_addr())) {
@@ -299,17 +285,11 @@ void DGTree::forward_data(Packet* p) {
 		ch->addr_type() = NS_AF_INET;
 
 		nsaddr_t next_hop = forwarderset[roundrobin].addr_;
-		printf("Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n", ih->saddr(),ih->daddr(), ra_addr_, next_hop);
+		printf(
+				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
+				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
 		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
-		/*
-		 * Look up the scheduling table to see if its your turn
-		 * If yes schedule the packet immediately.
-		 * else wait on a condition variable
-		 */
-
-
-
 		Scheduler::instance().schedule(target_, p, 0.0);
 	}
 
@@ -346,3 +326,4 @@ public:
 } class_rtDGTree;
 
 /********** ENDOF TCL Hooks************/
+

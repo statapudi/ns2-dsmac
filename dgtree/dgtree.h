@@ -12,9 +12,8 @@
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
-#define MAX_NEIGHBOURS 30
+#define MAX_NEIGHBOURS 50
 #define MAX_FORWARDERS 10
-#define MAX_WAIT_CHAIN 15
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
 #define CHILDREN_COUNT 2
@@ -27,13 +26,6 @@ struct forwarder{
 	int childCount_;
 };
 
-struct node_status{
-	nsaddr_t nid;
-	bool done;
-	int backlog;
-
-};
-typedef struct node_status NodeStatus;
 class DGTree_PktTimer: public TimerHandler {
 public:
 	DGTree_PktTimer(DGTree* agent) :
@@ -65,11 +57,9 @@ class DGTree: public Agent {
 	int num_desired_forwarders_;
 	int num_acks_recvd_;
 	int numhellosrecvd_;
-	int wchainlen;
 	u_int8_t seq_num_;
 	nsaddr_t downStreamNeighbors[MAX_NEIGHBOURS];
 	nsaddr_t potential_forwarder_set[MAX_NEIGHBOURS];
-	NodeStatus schedule_table[MAX_WAIT_CHAIN];
 	int roundrobin;
 
 
@@ -125,3 +115,4 @@ public:
 };
 
 #endif
+
