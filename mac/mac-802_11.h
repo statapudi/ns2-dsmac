@@ -43,12 +43,12 @@
 // Added by Sushmita to support event tracing (singal@nunki.usc.edu)
 #include "address.h"
 #include "ip.h"
-
 #include "mac-timers.h"
 #include "marshall.h"
 #include <math.h>
 #include <stddef.h>
 #include <list>
+#include "dgtree.h"
 
 class EventTrace;
 
@@ -406,10 +406,11 @@ private:
 	void	shift_priority_queue();
 
 
-
+	void *dgtreeagent;
 	/* In support of bug fix described at
 	 * http://www.dei.unipd.it/wdyn/?IDsezione=2435	 
 	 */
+
 	int bugFix_timer_;
 	int infra_mode_;
 	double BeaconTxtime_;

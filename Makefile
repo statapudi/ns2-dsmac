@@ -65,6 +65,7 @@ INCLUDES = \
 	-I.  \
 	-I. \
 	-I/home/smtatapudi/Public/ns-allinone-2.35/tclcl-1.20 -I/home/smtatapudi/Public/ns-allinone-2.35/otcl-1.14 -I/home/smtatapudi/Public/ns-allinone-2.35/include -I/home/smtatapudi/Public/ns-allinone-2.35/include -I/home/smtatapudi/Public/ns-allinone-2.35/include -I/usr/include/pcap \
+	-I./dgtree \
 	-I./tcp -I./sctp -I./common -I./link -I./queue \
 	-I./adc -I./apps -I./mac -I./mobile -I./trace \
 	-I./routing -I./tools -I./classifier -I./mcast \
@@ -162,6 +163,7 @@ NS_TCL_LIB_STL = tcl/lib/ns-diffusion.tcl \
 # !include <conf/makefile.win>
 
 OBJ_CC = \
+	dgtree/dgtree.o dgtree/dgenergy.o\
 	tools/random.o tools/rng.o tools/ranvar.o common/misc.o common/timer-handler.o \
 	common/scheduler.o common/object.o common/packet.o \
 	common/ip.o routing/route.o common/connector.o common/ttl.o \
@@ -333,7 +335,6 @@ OBJ_CC = \
 	wpan/p802_15_4sscs.o wpan/p802_15_4timer.o \
 	wpan/p802_15_4trace.o wpan/p802_15_4transac.o \
 	apps/pbc.o \
-	dgtree/dgtree.o dgtree/dgenergy.o\
 	$(OBJ_STL)
 
 

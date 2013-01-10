@@ -10,19 +10,17 @@
 
 int hdr_dgtree::offset_;
 
-
-
 DGTree::DGTree(nsaddr_t id) :
 	Agent(PT_DGTREE), pkt_timer_(this) {
 	int i = 0;
-
+	/**************** INITIALIZATIONS **************************/
 	bind_bool("accessible_var_", &accessible_var_);
 	godinstance_ = God::instance();
 	assert(godinstance_ != 0);
 	roundrobin = 0;
 	ra_addr_ = id;
 	num_acks_recvd_ = 0; // used to know when to start sending children counts.
-	potential_forwarders_ = 0;
+	potential_forwarders_ = 0; // Total available forwarders; determined after child discovery and forwarder setup
 	childcountsrecvd = 0;
 	numhellosrecvd_ = 0;
 	currwaitlen = 0;
@@ -40,7 +38,6 @@ DGTree::DGTree(nsaddr_t id) :
 	}
 
 }
-
 
 int DGTree::command(int argc, const char* const * argv) {
 
@@ -104,8 +101,15 @@ int DGTree::command(int argc, const char* const * argv) {
 			}
 
 			return TCL_OK;
-		}
+		} else if (strcmp(argv[1], "set-mac") == 0) {
+			mymac = (Mac802_11 *) TclObject::lookup(argv[2]);
+			if (mymac == 0) {
+				printf("MESPAgent: %s lookup %s failed.\n", argv[1], argv[2]);
+				return TCL_ERROR;
+			}
+			return TCL_OK;
 
+		}
 	}
 
 	return Agent::command(argc, argv);
@@ -294,9 +298,9 @@ void DGTree::forward_data(Packet* p) {
 		ch->addr_type() = NS_AF_INET;
 
 		nsaddr_t next_hop = forwarderset[roundrobin].addr_;
-//		printf(
-//				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
-//				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
+		//		printf(
+		//				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
+		//				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
 		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
 
@@ -305,28 +309,30 @@ void DGTree::forward_data(Packet* p) {
 		 * Else, add to backlog
 		 */
 		addBacklog(p);
-		if(currwaitlen == 0)
+		if (currwaitlen == 0)
 			clearBacklog();
 
 	}
 
 }
 
-void DGTree::clearBacklog(){
+void DGTree::clearBacklog() {
 	int i;
-	for(i=0; i< currbacklog;i++){
+	for (i = 0; i < currbacklog; i++) {
 		Scheduler::instance().schedule(target_, backlog[i], 0.0);
 	}
 	currbacklog = 0;
+	// wait small random amount of time.
+	// TODO: Signal 1 hop neighbors about the MAC access; How to access the objects of neighbours?
+
 
 }
 
-void DGTree::addBacklog(Packet *p){
-	if(currbacklog == MAX_BACKLOG){
+void DGTree::addBacklog(Packet *p) {
+	if (currbacklog == MAX_BACKLOG) {
 		Scheduler::instance().schedule(target_, p, 0.0);
-	}
-	else
-	backlog[currbacklog++] = p;
+	} else
+		backlog[currbacklog++] = p;
 }
 
 void DGTree::reset_dgtree_pkt_timer() {
@@ -335,6 +341,10 @@ void DGTree::reset_dgtree_pkt_timer() {
 
 void DGTree_PktTimer::expire(Event* e) {
 	agent_->reset_dgtree_pkt_timer();
+}
+
+void DGTree::printHello(){
+	printf("Hello from DGTree!\n");
 }
 /********** TCL Hooks************/
 

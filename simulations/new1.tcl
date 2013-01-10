@@ -93,6 +93,10 @@ source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/hopcounts.t
 
 	for {set i 0} {$i < $val(nn) } {incr i} {
 		[$node_($i) agent 255] startBS 0
+		set rt($i) [$node_($i) agent 255]
+		$rt($i) set-mac  [$node_($i) set mac_(0)]
+		set mymac($i) [$node_($i) set mac_(0)] 
+  		$mymac($i) access-agent [$node_($i) agent 255] 
 	}
 
 
