@@ -18,7 +18,7 @@ set val(y) 		1000		 ;# Y dimension of topology
 set val(ifqlen) 50                       ;# max packet in ifq
 set val(nn)     6            	         ;# number of nodes
 set val(seed)	0.0
-set val(stop)	200.0			 ;# simulation time
+set val(stop)	250.0			 ;# simulation time
 set val(tr)	vamroute.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
 set val(energymodel) EnergyModel
@@ -72,6 +72,8 @@ $ns_ node-config -adhocRouting $val(rp) \
 		 -agentTrace $AgentTrace \
 		 -routerTrace $RouterTrace \
 		 -macTrace $MacTrace \
+		 -energyModel $val(energymodel) \
+		 -initialEnergy $val(initialenergy) \
 		 -movementTrace OFF
 	
 #Disable random motion of the nodes 
@@ -126,36 +128,47 @@ $god_ set-dist 3 4 2
 $god_ set-dist 3 5 1
 $god_ set-dist 4 5 1
 
+	for {set i 0} {$i < $val(nn) } {incr i} {
+		[$node_($i) agent 255] startBS 0
+		set ra [$node_($i) agent 255]
+		set mymac [$node_($i) set mac_(0)]
+		$ra init-mymac $mymac
+		$mymac init-myagent $ra 
+		 
+	}
+
+
 set null_(0) [new Agent/Null]
 $ns_ attach-agent $node_(0) $null_(0)
 
 set udp_(0) [new Agent/UDP]
 $ns_ attach-agent $node_(4) $udp_(0)
-#set udp_(1) [new Agent/UDP]
-#$ns_ attach-agent $node_(5) $udp_(1)
+set udp_(1) [new Agent/UDP]
+$ns_ attach-agent $node_(5) $udp_(1)
 set cbr_(0) [new Application/Traffic/CBR]
 $cbr_(0) set packetSize_ 64
-$cbr_(0) set interval_ 100.000000
+$cbr_(0) set interval_ 2.000000
 $cbr_(0) set random_ 1
-$cbr_(0) set maxpkts_ 1
+$cbr_(0) set maxpkts_ 2
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
-#set cbr_(1) [new Application/Traffic/CBR]
-#$cbr_(1) set packetSize_ 64
-#$cbr_(1) set interval_ 100.000000
-#$cbr_(1) set random_ 1
-#$cbr_(1) set maxpkts_ 1
-#$cbr_(1) attach-agent $udp_(1)
-#$ns_ connect $udp_(1) $null_(0)
+set cbr_(1) [new Application/Traffic/CBR]
+$cbr_(1) set packetSize_ 64
+$cbr_(1) set interval_ 2.000000
+$cbr_(1) set random_ 1
+$cbr_(1) set maxpkts_ 2
+$cbr_(1) attach-agent $udp_(1)
+$ns_ connect $udp_(1) $null_(0)
 $ns_ at 100.0 "$cbr_(0) start"
-#$ns_ at 60.0 "$cbr_(1) start"
+$ns_ at 100.0 "$cbr_(1) start"
 $ns_ at 150.0 "$cbr_(0) stop"
-#$ns_ at 150.0 "$cbr_(1) stop"
+$ns_ at 150.0 "$cbr_(1) stop"
 
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
     $ns_ at $val(stop)  "$node_($i) reset";
+    $ns_ at 50.0 "[$node_($i) agent 255] print_forwarderset"
 }
 
 $ns_ at $val(stop)  "stop"

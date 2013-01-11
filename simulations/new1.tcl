@@ -110,11 +110,11 @@ set cbr_(0) [new Application/Traffic/CBR]
 $cbr_(0) set packetSize_ 64
 $cbr_(0) set interval_ 20.000000
 $cbr_(0) set random_ 1
-$cbr_(0) set maxpkts_ 100
+$cbr_(0) set maxpkts_ 3
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
-$ns_ at 300.0 "$cbr_(0) start"
-$ns_ at 400.0 "$cbr_(0) stop"
+#$ns_ at 200.0 "$cbr_(0) start"
+#$ns_ at 400.0 "$cbr_(0) stop"
 
 set udp_(1) [new Agent/UDP]
 $ns_ attach-agent $node_(20) $udp_(1)
@@ -122,7 +122,7 @@ set cbr_(1) [new Application/Traffic/CBR]
 $cbr_(1) set packetSize_ 64
 $cbr_(1) set interval_ 20.000000
 $cbr_(1) set random_ 1
-$cbr_(1) set maxpkts_ 100
+$cbr_(1) set maxpkts_ 3
 $cbr_(1) attach-agent $udp_(1)
 $ns_ connect $udp_(1) $null_(0)
 $ns_ at 300.0 "$cbr_(1) start"
@@ -132,7 +132,7 @@ $ns_ at 400.0 "$cbr_(1) stop"
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
     $ns_ at $val(stop)  "$node_($i) reset";
-    $ns_ at 280.0 "[$node_($i) agent 255] print_forwarderset"
+    $ns_ at 100.0 "[$node_($i) agent 255] print_forwarderset"
 }
 
 $ns_ at $val(stop)  "stop"

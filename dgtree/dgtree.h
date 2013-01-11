@@ -14,9 +14,8 @@
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
 #define MAX_NEIGHBOURS 50
-#define MAXWAITCHAIN 15
 #define MAX_BACKLOG 10
-#define MAX_FORWARDERS 10
+#define MAX_FORWARDERS 1
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
 #define CHILDREN_COUNT 2
@@ -118,6 +117,7 @@ public:
 
 	DGTree(nsaddr_t);
 	void test();
+	void permitMACAccess();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
 	forwarder forwarderset[MAX_FORWARDERS];

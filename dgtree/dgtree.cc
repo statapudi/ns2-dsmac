@@ -10,7 +10,7 @@
 
 int hdr_dgtree::offset_;
 
-void DGTree::test(){
+void DGTree::test() {
 	printf("Hello from DGTree!!\n");
 }
 
@@ -42,7 +42,6 @@ DGTree::DGTree(nsaddr_t id) :
 
 }
 
-
 int DGTree::command(int argc, const char* const * argv) {
 
 	if (argc == 2) {
@@ -51,7 +50,7 @@ int DGTree::command(int argc, const char* const * argv) {
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
 			num_desired_forwarders_ = childcountsrecvd;
-			printForwarderSet();
+			//printForwarderSet();
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_rtable") == 0) {
 			if (logtarget_ != 0) {
@@ -105,14 +104,13 @@ int DGTree::command(int argc, const char* const * argv) {
 			}
 
 			return TCL_OK;
-		}
-		else if (strcmp(argv[1], "init-mymac") == 0) {
-			mymac = (Mac802_11 *)TclObject::lookup(argv[2]);
-			if(mymac == 0){
+		} else if (strcmp(argv[1], "init-mymac") == 0) {
+			mymac = (Mac802_11 *) TclObject::lookup(argv[2]);
+			if (mymac == 0) {
 				return TCL_ERROR;
 			}
 
-			mymac->test();
+			//mymac->test();
 			return TCL_OK;
 		}
 
@@ -230,6 +228,7 @@ void DGTree::recv_dgtree_pkt(Packet *p) {
 		 * Update potential forwarder set
 		 * If Potential forwarders equal the number of PARENT_HELLOs received, initiate final forwarder selection and next hop discovery
 		 */
+
 		//printf("**recieved count of %d from node %d at node %d\n", ph->flags_, ph->pkt_src_, ra_addr_);
 
 
@@ -307,33 +306,54 @@ void DGTree::forward_data(Packet* p) {
 		printf(
 				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
 				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
-		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
+		//roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
 
 		/*
 		 * If its your turn, go ahead and proceed to MAC contention.
 		 * Else, add to backlog
 		 */
-		Scheduler::instance().schedule(target_, p, 0.0);
+//		if (mymac->getcurrwaitlen() == 0)
+//			Scheduler::instance().schedule(target_, p, 0.0);
+//		else
+			addBacklog(p);
 	}
 
 }
+void DGTree::permitMACAccess() {
+	if (currbacklog == MAX_BACKLOG)
+		clearBacklog();
+	else{
+		if(currbacklog>0) // Only if there is some backlog
+			Scheduler::instance().schedule(target_, backlog[--currbacklog], 0.0);
+	}
+}
 
-void DGTree::clearBacklog(){
+void DGTree::clearBacklog() {
 	int i;
-	for(i=0; i< currbacklog;i++){
+	for (i = 0; i < currbacklog; i++) {
 		Scheduler::instance().schedule(target_, backlog[i], 0.0);
 	}
 	currbacklog = 0;
 
 }
 
-void DGTree::addBacklog(Packet *p){
-	if(currbacklog == MAX_BACKLOG){
+void DGTree::addBacklog(Packet *p) {
+	int top = mymac->gettop();
+	if (currbacklog == MAX_BACKLOG || top == -1) {
+		Scheduler::instance().schedule(target_, p, 0.0);
+
+	}
+
+	else if(top == ra_addr_ && mymac->getcurrwaitlen() == 0){
 		Scheduler::instance().schedule(target_, p, 0.0);
 	}
-	else
-	backlog[currbacklog++] = p;
+
+	else{
+		printf("*** Adding to backlog at node %d\n", ra_addr_);
+		backlog[currbacklog++] = p;
+	}
+
 }
 
 void DGTree::reset_dgtree_pkt_timer() {

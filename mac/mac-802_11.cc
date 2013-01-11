@@ -79,6 +79,34 @@ void Mac802_11::test() {
 	printf("Hello from MAC!!\n");
 }
 
+void Mac802_11::updateSTable(nsaddr_t src) {
+	int i = checkDuplicate(src);
+	if (!i) // node does not exist in the table
+	{
+		if (tablelen < MAXWAITCHAIN){
+			stable[tablelen++] = src;
+			printf("Adding to table %d at %d\n", src, addr());
+		}
+
+	} else{
+		if(currwaitlen> 0)
+			// node exists already
+					currwaitlen--;
+
+	}
+
+}
+
+int Mac802_11::checkDuplicate(nsaddr_t src) {
+
+	int i;
+	for (i = 0; i < tablelen; i++) {
+		if (stable[i] == src)
+			return 1;
+	}
+	return 0;
+}
+
 inline void Mac802_11::checkBackoffTimer() {
 	if (is_idle() && mhBackoff_.paused())
 		mhBackoff_.resume(phymib_.getDIFS());
@@ -87,6 +115,12 @@ inline void Mac802_11::checkBackoffTimer() {
 }
 
 inline void Mac802_11::transmit(Packet *p, double timeout) {
+	hdr_mac802_11 *mh = HDR_MAC802_11(p);
+	struct hdr_ip *iph = HDR_IP(p);
+	struct hdr_cmn *ch = HDR_CMN(p);
+	u_int8_t type = mh->dh_fc.fc_type;
+	u_int8_t subtype = mh->dh_fc.fc_subtype;
+
 	tx_active_ = 1;
 
 	if (EOTtarget_) {
@@ -118,6 +152,17 @@ inline void Mac802_11::transmit(Packet *p, double timeout) {
 	downtarget_->recv(p->copy(), this);
 	mhSend_.start(timeout);
 	mhIF_.start(txtime(p));
+	if (iph->ttl() != 0 && iph->saddr() != 0 && ch->ptype() != PT_DGTREE
+			&& subtype == MAC_Subtype_Data && type == MAC_Type_Data) {
+		printf(
+				"SOURCE MAC___ dataPacket ---- from node %d to node %d is now leaving %d\n",
+				iph->saddr(), iph->daddr(), addr());
+		// I got to transmit! Scheduling now begins/ restarts
+		updateSTable(addr());
+		totalwaitlen = tablelen-1;
+		currwaitlen = totalwaitlen;
+
+	}
 }
 inline void Mac802_11::setRxState(MacState newState) {
 	rx_state_ = newState;
@@ -184,7 +229,23 @@ MAC_MIB::MAC_MIB(Mac802_11 *parent) {
  Mac Class Functions
  ====================================================================== */
 
+int Mac802_11::getcurrwaitlen() {
+	return currwaitlen;
+}
 
+int Mac802_11::gettablelen() {
+	return tablelen;
+}
+
+int Mac802_11::gettotalwaitlen() {
+	return totalwaitlen;
+}
+
+int Mac802_11::gettop() {
+	if(tablelen == 0)
+		return -1;
+	return stable[0];
+}
 
 Mac802_11::Mac802_11() :
 	Mac(), phymib_(this), macmib_(this), mhIF_(this), mhNav_(this),
@@ -193,7 +254,9 @@ Mac802_11::Mac802_11() :
 
 	nav_ = 0.0;
 
-
+	tablelen = 0;
+	currwaitlen = 0;
+	totalwaitlen = 0;
 	tx_state_ = rx_state_ = MAC_IDLE;
 	tx_active_ = 0;
 	eotPacket_ = NULL;
@@ -259,7 +322,7 @@ int Mac802_11::command(int argc, const char* const * argv) {
 			if (myagent == 0) {
 				return TCL_ERROR;
 			}
-			myagent->test();
+			//myagent->test();
 			return TCL_OK;
 		}
 
@@ -979,6 +1042,7 @@ int Mac802_11::check_pktTx() {
 		exit(1);
 	}
 	transmit(pktTx_, timeout);
+
 	return 0;
 }
 /*
@@ -1498,11 +1562,12 @@ void Mac802_11::recv(Packet *p, Handler *h) {
 }
 
 void Mac802_11::recv_timer() {
-	u_int32_t src;
+
 	hdr_cmn *ch = HDR_CMN(pktRx_);
 	hdr_mac802_11 *mh = HDR_MAC802_11(pktRx_);
 	struct hdr_ip *iph = HDR_IP(pktRx_);
 	u_int32_t dst = ETHER_ADDR(mh->dh_ra);
+	u_int32_t src;
 	u_int32_t ap_dst = ETHER_ADDR(mh->dh_3a);
 	u_int8_t type = mh->dh_fc.fc_type;
 	u_int8_t subtype = mh->dh_fc.fc_subtype;
@@ -1560,9 +1625,10 @@ void Mac802_11::recv_timer() {
 	 * Hacking: Before filter the packet, log the neighbor node
 	 * I can hear the packet, the src is my neighbor
 	 */
+	src = ETHER_ADDR(mh->dh_ta);
 	if (netif_->node()->energy_model()
 			&& netif_->node()->energy_model()->adaptivefidelity()) {
-		src = ETHER_ADDR(mh->dh_ta);
+
 		netif_->node()->energy_model()->add_neighbor(src);
 
 	}
@@ -1572,17 +1638,16 @@ void Mac802_11::recv_timer() {
 	 * if the turn-pointer points to the current node signal it; ie, if currwaitlen == 0, signal the node's routing agent
 	 */
 
-	//	if(iph->ttl()!=0 && iph->saddr()!=0 && ch->ptype() != PT_DGTREE && subtype == MAC_Subtype_Data && type == MAC_Type_Data){
-	//		printf("MAC___ dataPacket ---- from node %d to node %d is now at %d and macdst is %d\n",iph->saddr() ,iph->daddr(),addr(), dst);
-	//		printf("*******%d\n", iph->saddr());
-	//		DGTree * dgtreeagent;
-	//		sprintf(command, "[$node_($i) agent 255] setRoutingAgent");
-	//		Tcl& tcl = Tcl::instance();
-	//		tcl.eval(command);
-	//		const char* ref = tcl.result();
-	//		dgtreeagent = (DGTree*)tcl.lookup(ref);
-	//
-	//	}
+	if (iph->ttl() != 0 && iph->saddr() != 0 && ch->ptype() != PT_DGTREE
+			&& subtype == MAC_Subtype_Data && type == MAC_Type_Data) {
+		printf(
+				"MAC___ dataPacket ---- from node %d to node %d is now at %d and macsrc is %d and macdst is %d\n",
+				iph->saddr(), iph->daddr(), addr(), src, dst);
+
+		updateSTable(src);
+		if(currwaitlen == 0)
+			myagent->permitMACAccess();
+	}
 
 	/*
 	 * Address Filtering
