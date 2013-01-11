@@ -10,7 +10,9 @@
 
 int hdr_dgtree::offset_;
 
-
+void DGTree::test(){
+	printf("Hello from DGTree!!\n");
+}
 
 DGTree::DGTree(nsaddr_t id) :
 	Agent(PT_DGTREE), pkt_timer_(this) {
@@ -25,10 +27,9 @@ DGTree::DGTree(nsaddr_t id) :
 	potential_forwarders_ = 0;
 	childcountsrecvd = 0;
 	numhellosrecvd_ = 0;
-	currwaitlen = 0;
+
 	currbacklog = 0;
-	totalwaitlen = 0;
-	tablelen = 0;
+
 	/*Initially we assume a node can accommodate the desired number of forwarders.
 	 Once all forwarders are determined, this is adjusted accordingly*/
 	num_desired_forwarders_ = MAX_FORWARDERS;
@@ -103,6 +104,15 @@ int DGTree::command(int argc, const char* const * argv) {
 				}
 			}
 
+			return TCL_OK;
+		}
+		else if (strcmp(argv[1], "init-mymac") == 0) {
+			mymac = (Mac802_11 *)TclObject::lookup(argv[2]);
+			if(mymac == 0){
+				return TCL_ERROR;
+			}
+
+			mymac->test();
 			return TCL_OK;
 		}
 
@@ -304,10 +314,7 @@ void DGTree::forward_data(Packet* p) {
 		 * If its your turn, go ahead and proceed to MAC contention.
 		 * Else, add to backlog
 		 */
-		addBacklog(p);
-		if(currwaitlen == 0)
-			clearBacklog();
-
+		Scheduler::instance().schedule(target_, p, 0.0);
 	}
 
 }
@@ -323,7 +330,7 @@ void DGTree::clearBacklog(){
 
 void DGTree::addBacklog(Packet *p){
 	if(currbacklog == MAX_BACKLOG){
-		Scheduler::instance().schedule(target_, backlog[i], 0.0);
+		Scheduler::instance().schedule(target_, p, 0.0);
 	}
 	else
 	backlog[currbacklog++] = p;

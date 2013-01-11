@@ -49,8 +49,10 @@
 #include <math.h>
 #include <stddef.h>
 #include <list>
+#include "dgtree/dgtree.h"
 
 class EventTrace;
+
 
 #define GET_ETHER_TYPE(x)		GET2BYTE((x))
 #define SET_ETHER_TYPE(x,y)            {u_int16_t t = (y); STORE2BYTE(x,&t);}
@@ -354,9 +356,10 @@ public:
 /* ======================================================================
    The actual 802.11 MAC class.
    ====================================================================== */
+
+
 class Mac802_11 : public Mac {
 	friend class DeferTimer;
-
 	friend class BeaconTimer; 
 	friend class ProbeTimer;
 	friend class BackoffTimer;
@@ -366,6 +369,7 @@ class Mac802_11 : public Mac {
 	friend class TxTimer;
 public:
 	Mac802_11();
+	void test();
 	void		recv(Packet *p, Handler *h);
 	inline int	hdr_dst(char* hdr, int dst = -2);
 	inline int	hdr_src(char* hdr, int src = -2);
@@ -376,6 +380,7 @@ public:
 	// Added by Sushmita to support event tracing
         void trace_event(char *, Packet *);
         EventTrace *et_;
+        DGTree *myagent;
 
 protected:
 	void	backoffHandler(void);
@@ -397,6 +402,7 @@ private:
 	void	passive_scan();	
 	void	active_scan();
 	void	checkAssocAuthStatus();
+
 	int	command(int argc, const char*const* argv);
 	
 
@@ -410,6 +416,9 @@ private:
 	/* In support of bug fix described at
 	 * http://www.dei.unipd.it/wdyn/?IDsezione=2435	 
 	 */
+
+
+
 	int bugFix_timer_;
 	int infra_mode_;
 	double BeaconTxtime_;

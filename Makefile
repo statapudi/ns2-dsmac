@@ -333,7 +333,7 @@ OBJ_CC = \
 	wpan/p802_15_4sscs.o wpan/p802_15_4timer.o \
 	wpan/p802_15_4trace.o wpan/p802_15_4transac.o \
 	apps/pbc.o \
-	dgtree/dgtree.o dgtree/dgenergy.o\
+	dgtree/dgtree.o \
 	$(OBJ_STL)
 
 

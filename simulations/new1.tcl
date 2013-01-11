@@ -93,6 +93,11 @@ source "/home/smtatapudi/Public/ns-allinone-2.35/ns-2.35/simulations/hopcounts.t
 
 	for {set i 0} {$i < $val(nn) } {incr i} {
 		[$node_($i) agent 255] startBS 0
+		set ra [$node_($i) agent 255]
+		set mymac [$node_($i) set mac_(0)]
+		$ra init-mymac $mymac
+		$mymac init-myagent $ra 
+		 
 	}
 
 
@@ -108,7 +113,7 @@ $cbr_(0) set random_ 1
 $cbr_(0) set maxpkts_ 100
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
-$ns_ at 200.0 "$cbr_(0) start"
+$ns_ at 300.0 "$cbr_(0) start"
 $ns_ at 400.0 "$cbr_(0) stop"
 
 set udp_(1) [new Agent/UDP]
@@ -120,14 +125,14 @@ $cbr_(1) set random_ 1
 $cbr_(1) set maxpkts_ 100
 $cbr_(1) attach-agent $udp_(1)
 $ns_ connect $udp_(1) $null_(0)
-$ns_ at 100.0 "$cbr_(1) start"
+$ns_ at 300.0 "$cbr_(1) start"
 $ns_ at 400.0 "$cbr_(1) stop"
 
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
     $ns_ at $val(stop)  "$node_($i) reset";
-    $ns_ at 60.0 "[$node_($i) agent 255] print_forwarderset"
+    $ns_ at 280.0 "[$node_($i) agent 255] print_forwarderset"
 }
 
 $ns_ at $val(stop)  "stop"

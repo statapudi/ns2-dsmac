@@ -9,6 +9,7 @@
 #include <classifier-port.h>
 #include <cmu-trace.h>
 #include <god.h>
+#include <mac-802_11.h>
 
 #define CURRENT_TIME Scheduler::instance().clock()
 #define JITTER (Random::uniform()*0.5)
@@ -26,10 +27,6 @@ class DGTree;// forward declaration
 struct forwarder{
 	nsaddr_t addr_;
 	int childCount_;
-};
-struct NodeInfo{
-	nsaddr_t id;
-	int currqlen;
 };
 
 class DGTree_PktTimer: public TimerHandler {
@@ -52,14 +49,11 @@ class DGTree: public Agent {
 
 	/* Private members */
 	nsaddr_t ra_addr_;
+	Mac802_11 *mymac;
 	Packet* backlog[MAX_BACKLOG];
-	nsaddr_t stable[MAXWAITCHAIN];
 	int hop_;
 	int neighbourcount_;
 	bool forwarderSetupDone;
-	int currwaitlen;
-	int totalwaitlen;
-	int tablelen;
 	int currbacklog;
 	God* godinstance_;
 	nsaddr_t baseStation_;
@@ -123,6 +117,7 @@ protected:
 public:
 
 	DGTree(nsaddr_t);
+	void test();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);
 	forwarder forwarderset[MAX_FORWARDERS];
