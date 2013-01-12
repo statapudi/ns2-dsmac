@@ -344,9 +344,7 @@ void DGTree::forward_data(Packet* p) {
 		 * If its your turn, go ahead and proceed to MAC contention.
 		 * Else, add to backlog
 		 */
-		//		if (mymac->getcurrwaitlen() == 0)
-		//			Scheduler::instance().schedule(target_, p, 0.0);
-		//		else
+
 		addBacklog(p);
 		energymodel.DecrTxEnergy(ch->size()*8*(1.0/M_BANDWIDTH), M_TRANSMIT_POWER);
 	}
