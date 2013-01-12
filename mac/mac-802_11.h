@@ -371,6 +371,7 @@ public:
 	Mac802_11();
 	void test();
 	int getcurrwaitlen();
+	void setcurrwaitlen(int);
 	int gettablelen();
 	int gettotalwaitlen();
 	int gettop();

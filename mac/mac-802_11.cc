@@ -83,18 +83,21 @@ void Mac802_11::updateSTable(nsaddr_t src) {
 	int i = checkDuplicate(src);
 	if (!i) // node does not exist in the table
 	{
-		if (tablelen < MAXWAITCHAIN){
+		if (tablelen < MAXWAITCHAIN) {
 			stable[tablelen++] = src;
 			printf("Adding to table %d at %d\n", src, addr());
 		}
 
-	} else{
-		if(currwaitlen> 0)
-			// node exists already
-					currwaitlen--;
+	} else { // node exists already
+		if (currwaitlen > 0)
+			currwaitlen--;
 
 	}
 
+}
+
+void Mac802_11::setcurrwaitlen(int l){
+	currwaitlen = l;
 }
 
 int Mac802_11::checkDuplicate(nsaddr_t src) {
@@ -159,7 +162,7 @@ inline void Mac802_11::transmit(Packet *p, double timeout) {
 				iph->saddr(), iph->daddr(), addr());
 		// I got to transmit! Scheduling now begins/ restarts
 		updateSTable(addr());
-		totalwaitlen = tablelen-1;
+		totalwaitlen = tablelen - 1;
 		currwaitlen = totalwaitlen;
 
 	}
@@ -242,7 +245,7 @@ int Mac802_11::gettotalwaitlen() {
 }
 
 int Mac802_11::gettop() {
-	if(tablelen == 0)
+	if (tablelen == 0)
 		return -1;
 	return stable[0];
 }
@@ -255,8 +258,8 @@ Mac802_11::Mac802_11() :
 	nav_ = 0.0;
 
 	tablelen = 0;
-	currwaitlen = 0;
-	totalwaitlen = 0;
+	currwaitlen = -1;
+	totalwaitlen = -1;
 	tx_state_ = rx_state_ = MAC_IDLE;
 	tx_active_ = 0;
 	eotPacket_ = NULL;
@@ -1562,7 +1565,10 @@ void Mac802_11::recv(Packet *p, Handler *h) {
 }
 
 void Mac802_11::recv_timer() {
-
+	char command1[256];
+	DGTree * curragent;
+	Tcl& tcl = Tcl::instance();
+	int counter;
 	hdr_cmn *ch = HDR_CMN(pktRx_);
 	hdr_mac802_11 *mh = HDR_MAC802_11(pktRx_);
 	struct hdr_ip *iph = HDR_IP(pktRx_);
@@ -1637,7 +1643,7 @@ void Mac802_11::recv_timer() {
 	 * else If already there, move the turn-pointer to the next node in the schedule; ie, decrement the 'currwaitlen'
 	 * if the turn-pointer points to the current node signal it; ie, if currwaitlen == 0, signal the node's routing agent
 	 */
-
+// TODO: Completely avoid cyclic chains by only adding same hop and hop below you in the scheduling table
 	if (iph->ttl() != 0 && iph->saddr() != 0 && ch->ptype() != PT_DGTREE
 			&& subtype == MAC_Subtype_Data && type == MAC_Type_Data) {
 		printf(
@@ -1645,8 +1651,33 @@ void Mac802_11::recv_timer() {
 				iph->saddr(), iph->daddr(), addr(), src, dst);
 
 		updateSTable(src);
-		if(currwaitlen == 0)
+		for(counter = 0; counter < tablelen; counter++){ // If the people you wait for have no backlog, then proceed
+			/*
+			 *  If there are nodes in the table that you have not started to wait for yet, ignore them
+			 */
+			if(totalwaitlen < (tablelen-1) && stable[counter] == addr())
+				break;
+
+			// Other nodes not including yourself
+			if(stable[counter] != addr()){
+				sprintf(command1, "set ra [$node_(%d) agent 255]\nset t $ra\n", stable[counter]);
+
+				tcl.eval(command1);
+				const char* ref = tcl.result();
+				curragent = (DGTree*)tcl.lookup(ref);
+				if(!curragent->isthereBacklog())
+				{
+					if(currwaitlen>0)
+						currwaitlen--;
+				}
+			}
+		}
+
+		if (currwaitlen == 0)
 			myagent->permitMACAccess();
+
+//
+
 	}
 
 	/*

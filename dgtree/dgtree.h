@@ -1,6 +1,7 @@
 #ifndef __dgtree_h__
 #define __dgtree_h__
 #include "dgtree_pkt.h"
+#include "dgenergy.h"
 #include <agent.h>
 #include <packet.h>
 #include <trace.h>
@@ -15,7 +16,7 @@
 #define JITTER (Random::uniform()*0.5)
 #define MAX_NEIGHBOURS 50
 #define MAX_BACKLOG 10
-#define MAX_FORWARDERS 1
+#define MAX_FORWARDERS 2
 #define PARENT_HELLO 0
 #define CHILD_ACK 1
 #define CHILDREN_COUNT 2
@@ -45,7 +46,7 @@ class DGTree: public Agent {
 
 	/* Friends */
 	friend class DGTree_PktTimer;
-
+	friend class DG_EnergyModel;
 	/* Private members */
 	nsaddr_t ra_addr_;
 	Mac802_11 *mymac;
@@ -66,6 +67,7 @@ class DGTree: public Agent {
 	nsaddr_t downStreamNeighbors[MAX_NEIGHBOURS];
 	nsaddr_t potential_forwarder_set[MAX_NEIGHBOURS];
 	int roundrobin;
+	DG_EnergyModel energymodel;
 
 
 protected:
@@ -117,6 +119,7 @@ public:
 
 	DGTree(nsaddr_t);
 	void test();
+	int isthereBacklog();
 	void permitMACAccess();
 	int command(int, const char* const *);
 	void recv(Packet*, Handler*);

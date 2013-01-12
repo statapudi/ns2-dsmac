@@ -11,7 +11,12 @@
 int hdr_dgtree::offset_;
 
 void DGTree::test() {
-	printf("Hello from DGTree!!\n");
+	printf("Hello from DGTree node %d!!\n", ra_addr_);
+}
+int DGTree::isthereBacklog(){
+	if(currbacklog == 0)
+		return 0;
+	return 1;
 }
 
 DGTree::DGTree(nsaddr_t id) :
@@ -40,6 +45,7 @@ DGTree::DGTree(nsaddr_t id) :
 		forwarderset[i].addr_ = -1;
 	}
 
+
 }
 
 int DGTree::command(int argc, const char* const * argv) {
@@ -49,7 +55,10 @@ int DGTree::command(int argc, const char* const * argv) {
 
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
-			num_desired_forwarders_ = childcountsrecvd;
+			if(childcountsrecvd >= MAX_FORWARDERS)
+				num_desired_forwarders_ = childcountsrecvd;
+			else
+				num_desired_forwarders_ = childcountsrecvd;
 			//printForwarderSet();
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_rtable") == 0) {
@@ -65,7 +74,25 @@ int DGTree::command(int argc, const char* const * argv) {
 						CURRENT_TIME, ra_addr());
 			}
 			return TCL_OK;
+
+		} else if (strcasecmp(argv[1], "print_energy") == 0) {
+			if (logtarget_ != 0) {
+				/* display the energy level of the node */
+				sprintf(logtarget_->pt_->buffer(), "Energy: %d %lf %lf\n",
+						ra_addr(), CURRENT_TIME,
+						energymodel.getEnergyConsumed());
+				logtarget_->pt_->dump();
+
+			} else {
+				fprintf(stdout,
+						"%f _%d_ If you want to print the energy levels "
+							"you must create a trace file in your tcl script",
+						CURRENT_TIME, ra_addr());
+			}
+			return TCL_OK;
 		}
+
+
 	} else if (argc == 3) {
 		//Obtains corresponding dmux to carry packets to upper layers
 		if (strcmp(argv[1], "port-dmux") == 0) {
@@ -132,6 +159,7 @@ int DGTree::buildNeighbourInfo() {
 		}
 	}
 
+
 	return j;
 }
 
@@ -182,7 +210,9 @@ void DGTree::recv(Packet* p, Handler* h) {
 		}
 
 		forward_data(p);
+		energymodel.DecrRcvEnergy(ch->size()*8*(1.0/M_BANDWIDTH), M_RECEIVE_POWER);
 	}
+
 }
 
 void DGTree::recv_dgtree_pkt(Packet *p) {
@@ -286,6 +316,7 @@ void DGTree::send_dgtree_pkt(nsaddr_t dest, int type, int flags) {
 	ih->ttl() = IP_DEF_TTL;
 	ih->flowid() = type;
 	Scheduler::instance().schedule(target_, p, JITTER + 0.025);
+	energymodel.DecrTxEnergy(ch->size()*8*(1.0/M_BANDWIDTH), M_TRANSMIT_POWER);
 
 }
 
@@ -306,50 +337,70 @@ void DGTree::forward_data(Packet* p) {
 		printf(
 				"Packet ---- from node %d to node %d is now at %d and is being forwarded to node %d\n",
 				ih->saddr(), ih->daddr(), ra_addr_, next_hop);
-		//roundrobin = (roundrobin + 1) % num_desired_forwarders_;
+		roundrobin = (roundrobin + 1) % num_desired_forwarders_;
 		ch->next_hop() = next_hop;
 
 		/*
 		 * If its your turn, go ahead and proceed to MAC contention.
 		 * Else, add to backlog
 		 */
-//		if (mymac->getcurrwaitlen() == 0)
-//			Scheduler::instance().schedule(target_, p, 0.0);
-//		else
-			addBacklog(p);
+		//		if (mymac->getcurrwaitlen() == 0)
+		//			Scheduler::instance().schedule(target_, p, 0.0);
+		//		else
+		addBacklog(p);
+		energymodel.DecrTxEnergy(ch->size()*8*(1.0/M_BANDWIDTH), M_TRANSMIT_POWER);
 	}
 
 }
+
 void DGTree::permitMACAccess() {
+
+
 	if (currbacklog == MAX_BACKLOG)
 		clearBacklog();
-	else{
-		if(currbacklog>0) // Only if there is some backlog
+	else {
+		if (currbacklog > 0) // Only if there is some backlog
 			Scheduler::instance().schedule(target_, backlog[--currbacklog], 0.0);
+
 	}
 }
 
 void DGTree::clearBacklog() {
 	int i;
+
 	for (i = 0; i < currbacklog; i++) {
 		Scheduler::instance().schedule(target_, backlog[i], 0.0);
+
 	}
 	currbacklog = 0;
 
 }
 
 void DGTree::addBacklog(Packet *p) {
-	int top = mymac->gettop();
-	if (currbacklog == MAX_BACKLOG || top == -1) {
+
+
+	int top = mymac->gettop(); // are you in the top of the schedule table
+	if (currbacklog == MAX_BACKLOG || top == -1 || mymac->gettotalwaitlen() == -1) {
+
+
+		Scheduler::instance().schedule(target_, p, 0.0);
+
+
+	}
+
+	else if (top == ra_addr_ && mymac->getcurrwaitlen() == 0) {
 		Scheduler::instance().schedule(target_, p, 0.0);
 
 	}
 
-	else if(top == ra_addr_ && mymac->getcurrwaitlen() == 0){
+	else if(mymac->getcurrwaitlen() == 0)
+	{
+		mymac->setcurrwaitlen(-1); // This is to make sure you allow only one packet to sneek in
 		Scheduler::instance().schedule(target_, p, 0.0);
+
 	}
 
-	else{
+	else {
 		printf("*** Adding to backlog at node %d\n", ra_addr_);
 		backlog[currbacklog++] = p;
 	}

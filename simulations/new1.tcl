@@ -21,7 +21,7 @@ set val(nn)     50            	         ;# number of nodes
 set val(seed)	10.0
 set val(stop)	500.0			 ;# simulation time
 #set val(dcset)	0.2			 ;# Duty Cycle offset
-set val(tr)	vamroute.tr		 ;# trace file name
+set val(tr)	largesim.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
 set val(energymodel) EnergyModel
 set val(initialenergy) 30000
@@ -131,6 +131,7 @@ $ns_ at 400.0 "$cbr_(1) stop"
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
+    $ns_ at 450.0 "[$node_($i) agent 255] print_energy"
     $ns_ at $val(stop)  "$node_($i) reset";
     $ns_ at 100.0 "[$node_($i) agent 255] print_forwarderset"
 }

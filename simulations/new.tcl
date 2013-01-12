@@ -1,5 +1,3 @@
-# simulation.tcl
-# Tests Protoname routing agent
 
 # Define options
 # ======================================================================
@@ -7,7 +5,6 @@ set val(chan)	Channel/WirelessChannel	 ;# channel type
 set val(prop)	Propagation/TwoRayGround ;# radio-propagation model
 set val(netif)	Phy/WirelessPhy          ;# network interface type
 set val(mac)	Mac/802_11               ;# MAC type
-#set val(mac)	Mac/Simple               ;# MAC type
 set val(ifq) 	Queue/DropTail/PriQueue  ;# interface queue type
 set val(ll)		LL                       ;# link layer type
 set val(ant)	Antenna/OmniAntenna      ;# antenna model
@@ -18,8 +15,8 @@ set val(y) 		1000		 ;# Y dimension of topology
 set val(ifqlen) 50                       ;# max packet in ifq
 set val(nn)     6            	         ;# number of nodes
 set val(seed)	0.0
-set val(stop)	250.0			 ;# simulation time
-set val(tr)	vamroute.tr		 ;# trace file name
+set val(stop)	500.0			 ;# simulation time
+set val(tr)	smallsim.tr		 ;# trace file name
 set val(rp)     DGTree                ;# routing protocol
 set val(energymodel) EnergyModel
 set val(initialenergy) 30000
@@ -149,26 +146,28 @@ set cbr_(0) [new Application/Traffic/CBR]
 $cbr_(0) set packetSize_ 64
 $cbr_(0) set interval_ 2.000000
 $cbr_(0) set random_ 1
-$cbr_(0) set maxpkts_ 2
+$cbr_(0) set maxpkts_ 80
 $cbr_(0) attach-agent $udp_(0)
 $ns_ connect $udp_(0) $null_(0)
 set cbr_(1) [new Application/Traffic/CBR]
 $cbr_(1) set packetSize_ 64
 $cbr_(1) set interval_ 2.000000
 $cbr_(1) set random_ 1
-$cbr_(1) set maxpkts_ 2
+$cbr_(1) set maxpkts_ 80
 $cbr_(1) attach-agent $udp_(1)
 $ns_ connect $udp_(1) $null_(0)
-$ns_ at 100.0 "$cbr_(0) start"
-$ns_ at 100.0 "$cbr_(1) start"
-$ns_ at 150.0 "$cbr_(0) stop"
-$ns_ at 150.0 "$cbr_(1) stop"
+$ns_ at 75.0 "$cbr_(0) start"
+$ns_ at 75.0 "$cbr_(1) start"
+$ns_ at 480.0 "$cbr_(0) stop"
+$ns_ at 480.0 "$cbr_(1) stop"
 
 
 # Tell nodes when the simulation ends
 for {set i 0} {$i < $val(nn) } {incr i} {
+    $ns_ at 490.0 "[$node_($i) agent 255] print_energy"
     $ns_ at $val(stop)  "$node_($i) reset";
     $ns_ at 50.0 "[$node_($i) agent 255] print_forwarderset"
+
 }
 
 $ns_ at $val(stop)  "stop"
