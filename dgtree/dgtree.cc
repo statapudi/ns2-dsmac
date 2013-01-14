@@ -56,10 +56,10 @@ int DGTree::command(int argc, const char* const * argv) {
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_forwarderset") == 0) {
 			if(childcountsrecvd >= MAX_FORWARDERS)
-				num_desired_forwarders_ = childcountsrecvd;
+				num_desired_forwarders_ = MAX_FORWARDERS;
 			else
 				num_desired_forwarders_ = childcountsrecvd;
-			//printForwarderSet();
+				printForwarderSet();
 			return TCL_OK;
 		} else if (strcasecmp(argv[1], "print_rtable") == 0) {
 			if (logtarget_ != 0) {

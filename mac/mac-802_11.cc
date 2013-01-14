@@ -1566,6 +1566,7 @@ void Mac802_11::recv(Packet *p, Handler *h) {
 
 void Mac802_11::recv_timer() {
 	char command1[256];
+	int nodesprocessed = 0;
 	DGTree * curragent;
 	Tcl& tcl = Tcl::instance();
 	int counter;
@@ -1655,7 +1656,7 @@ void Mac802_11::recv_timer() {
 			/*
 			 *  If there are nodes in the table that you have not started to wait for yet, ignore them
 			 */
-			if(totalwaitlen < (tablelen-1) && stable[counter] == addr())
+			if(totalwaitlen < (tablelen-1) && nodesprocessed == totalwaitlen)
 				break;
 
 			// Other nodes not including yourself
@@ -1670,6 +1671,7 @@ void Mac802_11::recv_timer() {
 					if(currwaitlen>0)
 						currwaitlen--;
 				}
+				nodesprocessed++;
 			}
 		}
 

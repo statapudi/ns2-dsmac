@@ -27,7 +27,7 @@ set val(energymodel) EnergyModel
 set val(initialenergy) 30000
 set AgentTrace  OFF
 set RouterTrace OFF
-set MacTrace    OFF
+set MacTrace    ON
 
 # change transmission range (15 meters: 8.5457e-07)
 #Phy/WirelessPhy set RXThresh_ 0.5457e-09
